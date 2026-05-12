@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>PhiPilot — Controle de Jornada</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :root{
+    --bg:#0B1120;--surface:#131B2E;--surface-2:#1A2540;--border:#243352;
+    --text:#E8ECF4;--text-dim:#7B8BA5;--accent:#3B82F6;--accent-glow:rgba(59,130,246,.25);
+    --green:#22C55E;--green-glow:rgba(34,197,94,.2);
+    --amber:#F59E0B;--amber-glow:rgba(245,158,11,.2);
+    --red:#EF4444;--red-glow:rgba(239,68,68,.2);
+    --cyan:#06B6D4;--cyan-glow:rgba(6,182,212,.2);
+  }
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh}
+  .app{max-width:480px;margin:0 auto;padding:16px;padding-bottom:100px}
+
+  /* HEADER */
+  .header{text-align:center;padding:20px 0 12px}
+  .header-icon{width:48px;height:48px;background:linear-gradient(135deg,#0F172A,#3B82F6);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px;box-shadow:0 4px 20px var(--accent-glow);font-size:22px;font-weight:900;color:white;font-family:'JetBrains Mono',monospace}
+  .header h1{font-size:20px;font-weight:700;letter-spacing:-.3px}
+  .header p{font-size:13px;color:var(--text-dim);margin-top:4px}
+  .header .empresa{font-size:11px;color:var(--accent);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-top:2px}
+
+  /* CARDS */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px 20px;margin-top:16px}
+  .card label{display:block;font-size:13px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .card input{width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:16px;margin-bottom:16px;outline:none;transition:border-color .2s}
+  .card input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+  .card input.token-input{text-transform:uppercase;font-family:'JetBrains Mono',monospace;letter-spacing:2px;text-align:center;font-size:20px}
+
+  .btn-primary{width:100%;padding:16px;background:linear-gradient(135deg,var(--accent),#6366F1);border:none;border-radius:12px;color:white;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;cursor:pointer;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 16px var(--accent-glow);margin-top:8px}
+  .btn-primary:active{transform:scale(.97)}
+  .btn-primary:disabled{opacity:.5;pointer-events:none}
+
+  /* STATUS BAR */
+  .status-bar{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin:16px 0}
+  .status-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .status-dot.online{background:var(--green);box-shadow:0 0 8px var(--green-glow);animation:pulse 2s infinite}
+  .status-dot.offline{background:var(--red);box-shadow:0 0 8px var(--red-glow)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+  .status-text{font-size:13px;color:var(--text-dim);flex:1}
+  .status-clock{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--accent)}
+
+  .driver-info{display:flex;align-items:center;gap:12px;padding:8px 0 16px}
+  .driver-avatar{width:40px;height:40px;border-radius:50%;background:var(--surface-2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px}
+  .driver-name{font-weight:600;font-size:15px}
+  .driver-sub{font-size:12px;color:var(--text-dim)}
+
+  /* OFFLINE BANNER */
+  .offline-banner{background:var(--red-glow);border:1px solid var(--red);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--red)}
+  .offline-banner.pending{background:var(--amber-glow);border-color:var(--amber);color:var(--amber)}
+
+  /* BOTÕES */
+  .btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+  .action-btn{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:22px 12px;background:var(--surface);border:1px solid var(--border);border-radius:16px;color:var(--text);font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .2s;overflow:hidden}
+  .action-btn::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:16px 16px 0 0;opacity:0;transition:opacity .2s}
+  .action-btn:active{transform:scale(.95)}
+  .action-btn:hover::before{opacity:1}
+  .action-btn .icon-circle{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .action-btn .icon-circle svg{width:22px;height:22px}
+  .action-btn .btn-label{font-size:13px;font-weight:600;text-align:center;line-height:1.3}
+
+  .action-btn.start::before{background:var(--green)}.action-btn.start .icon-circle{background:var(--green-glow);color:var(--green)}
+  .action-btn.pause::before{background:var(--amber)}.action-btn.pause .icon-circle{background:var(--amber-glow);color:var(--amber)}
+  .action-btn.wait::before{background:var(--cyan)}.action-btn.wait .icon-circle{background:var(--cyan-glow);color:var(--cyan)}
+  .action-btn.stop::before{background:var(--red)}.action-btn.stop .icon-circle{background:var(--red-glow);color:var(--red)}
+  .action-btn:active .icon-circle{filter:brightness(1.3)}
+
+  /* LOG */
+  .log-section{margin-top:8px}
+  .log-title{font-size:13px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .log-title::after{content:'';flex:1;height:1px;background:var(--border)}
+  .log-entry{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);animation:slideIn .3s ease}
+  @keyframes slideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+  .log-entry:last-child{border-bottom:none}
+  .log-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:5px}
+  .log-dot.green{background:var(--green)}.log-dot.amber{background:var(--amber)}.log-dot.cyan{background:var(--cyan)}.log-dot.red{background:var(--red)}
+  .log-content{flex:1}
+  .log-event{font-size:14px;font-weight:600}
+  .log-time{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-dim);margin-top:2px}
+  .log-loc{font-size:11px;color:var(--text-dim);margin-top:2px}
+  .log-status{font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;flex-shrink:0;margin-top:2px}
+  .log-status.sent{background:var(--green-glow);color:var(--green)}
+  .log-status.pending{background:var(--amber-glow);color:var(--amber)}
+  .log-status.error{background:var(--red-glow);color:var(--red)}
+  .log-status.offline-q{background:rgba(99,102,241,.2);color:#818CF8}
+
+  .empty-log{text-align:center;padding:32px 16px;color:var(--text-dim);font-size:14px}
+  .empty-log svg{width:40px;height:40px;opacity:.3;margin-bottom:12px}
+
+  /* MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;z-index:100;animation:fadeIn .2s;padding:16px}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  .modal-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px 20px;width:100%;max-width:400px;margin-bottom:env(safe-area-inset-bottom,20px);animation:slideUp .25s ease}
+  @keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .modal-card h3{font-size:18px;margin-bottom:8px}
+  .modal-card p{font-size:14px;color:var(--text-dim);margin-bottom:20px;line-height:1.5}
+  .modal-actions{display:flex;gap:10px}
+  .modal-actions button{flex:1;padding:14px;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;border:none;transition:transform .1s}
+  .modal-actions button:active{transform:scale(.96)}
+  .btn-cancel{background:var(--surface-2);color:var(--text);border:1px solid var(--border)!important}
+  .btn-confirm{background:var(--accent);color:white}
+  .btn-confirm.red{background:var(--red)}
+
+  /* TOAST */
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 20px;font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px;z-index:200;animation:toastIn .3s ease,toastOut .3s ease 2.5s forwards;box-shadow:0 8px 32px rgba(0,0,0,.4);white-space:nowrap}
+  @keyframes toastIn{from{transform:translateX(-50%) translateY(20px);opacity:0}}
+  @keyframes toastOut{to{transform:translateX(-50%) translateY(20px);opacity:0}}
+
+  .hidden{display:none!important}
+
+  /* Garantir que só uma tela apareça */
+  #screen-login ~ #screen-main:not(.hidden) #screen-login:not(.hidden) { display:none!important }
+
+  /* CONFIG */
+  .config-section{margin-top:24px;padding-top:16px;border-top:1px solid var(--border)}
+  .config-section summary{font-size:13px;font-weight:600;color:var(--text-dim);cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px}
+  .config-section summary::-webkit-details-marker{display:none}
+  .config-content{margin-top:12px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px}
+  .config-content label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;font-weight:500}
+  .config-content input{width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;margin-bottom:12px;word-break:break-all}
+  .config-content input:focus{border-color:var(--accent)}
+  .btn-save{width:100%;padding:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer}
+
+  .btn-logout{margin-top:20px;width:100%;padding:12px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--text-dim);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer}
+
+  /* TABS MOTORISTA */
+  .mot-tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:16px}
+  .mot-tab{flex:1;padding:10px;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--text-dim);transition:all .15s}
+  .mot-tab.active{background:var(--accent);color:white}
+
+  /* CARDS RESUMO */
+  .resumo-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
+  .resumo-card h4{font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+  .resumo-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,.05)}
+  .resumo-row .label{color:var(--text-dim)}
+  .resumo-row .val{font-weight:600;font-family:'JetBrains Mono',monospace}
+  .resumo-row .val.green{color:var(--green)}
+  .resumo-row .val.amber{color:var(--amber)}
+  .resumo-row .val.red{color:#EF4444}
+
+  .stat-mini{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .stat-mini-card{background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+  .stat-mini-card .num{font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace}
+  .stat-mini-card .lbl{font-size:10px;color:var(--text-dim);margin-top:2px}
+  .stat-mini-card.green .num{color:var(--green)}
+  .stat-mini-card.amber .num{color:var(--amber)}
+  .stat-mini-card.red .num{color:#EF4444}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ===== TELA LOGIN ===== -->
+  <div id="screen-login">
+    <div class="header">
+      <div class="header-icon">Φ</div>
+      <h1>PhiPilot</h1>
+      <p class="empresa">Sistema de Controle de Jornada</p>
+      <p>Identifique-se para registrar sua jornada</p>
+    </div>
+
+    <div class="card">
+      <label>Seu Token Pessoal</label>
+      <input type="text" id="inp-token" class="token-input" placeholder="XXX-0000" maxlength="8" autocomplete="off">
+      <p style="font-size:12px;color:var(--text-dim);margin:-8px 0 16px;text-align:center">Token pessoal e intransferível</p>
+
+      <label>Senha</label>
+      <input type="password" id="inp-senha" class="token-input" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" style="font-size:24px;letter-spacing:8px">
+      <p style="font-size:12px;color:var(--text-dim);margin:-8px 0 16px;text-align:center">4 dígitos numéricos</p>
+
+      <button class="btn-primary" id="btn-entrar" onclick="autenticar()">Entrar</button>
+    </div>
+
+    <div class="config-section">
+      <details>
+        <summary>⚙️ Configuração</summary>
+        <div class="config-content">
+          <label>URL do Web App (Google Apps Script)</label>
+          <input type="text" id="inp-url" placeholder="https://script.google.com/macros/s/.../exec">
+          <button class="btn-save" onclick="salvarConfig()">Salvar URL</button>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <!-- ===== TELA PRINCIPAL ===== -->
+  <div id="screen-main" class="hidden" style="display:none">
+    <div class="header">
+      <div class="header-icon">Φ</div>
+      <h1>PhiPilot</h1>
+      <p class="empresa">Sistema de Controle de Jornada</p>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-dot online" id="status-dot"></div>
+      <span class="status-text" id="status-text">Conectado</span>
+      <span class="status-clock" id="clock">--:--:--</span>
+    </div>
+
+    <!-- BANNER OFFLINE / FILA -->
+    <div id="offline-banner" class="offline-banner hidden">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636a9 9 0 010 12.728M5.636 18.364a9 9 0 010-12.728"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+      <span id="offline-msg">Sem conexão</span>
+    </div>
+
+    <div id="pending-banner" class="offline-banner pending hidden">
+      <span>⏳</span>
+      <span id="pending-msg">0 registros na fila aguardando envio</span>
+    </div>
+
+    <div class="driver-info">
+      <div class="driver-avatar">🚛</div>
+      <div>
+        <div class="driver-name" id="disp-nome">—</div>
+        <div class="driver-sub"><span id="disp-placa">—</span> · <span id="disp-token">—</span></div>
+      </div>
+    </div>
+
+    <!-- ABAS -->
+    <div class="mot-tabs">
+      <button class="mot-tab active" onclick="trocarAbaMot('registrar',this)">🕐 Registrar</button>
+      <button class="mot-tab" onclick="trocarAbaMot('jornada',this)">📊 Minha Jornada</button>
+    </div>
+
+    <div id="aba-registrar">
+    <!-- BOTÕES -->
+    <div class="btn-grid">
+      <button class="action-btn start" onclick="confirmar('Início da Jornada','Registrar início da sua jornada?','green')">
+        <div class="icon-circle"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+        <span class="btn-label">Início Jornada</span>
+      </button>
+      <button class="action-btn pause" onclick="confirmar('Parada Descanso','Registrar parada para descanso?','amber')">
+        <div class="icon-circle"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+        <span class="btn-label">Parada Descanso</span>
+      </button>
+      <button class="action-btn pause" onclick="confirmar('Parada Refeição','Registrar parada para refeição?','amber')">
+        <div class="icon-circle"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+        <span class="btn-label">Parada Refeição</span>
+      </button>
+      <button class="action-btn wait" onclick="confirmar('Espera (Carga/Descarga)','Registrar tempo de espera?','cyan')">
+        <div class="icon-circle"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>
+        <span class="btn-label">Espera Carga</span>
+      </button>
+      <button class="action-btn start" onclick="confirmar('Retorno Condução','Registrar retorno à condução?','green')">
+        <div class="icon-circle"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></div>
+        <span class="btn-label">Retorno Condução</span>
+      </button>
+      <button class="action-btn stop" onclick="confirmar('Fim da Jornada','Encerrar sua jornada de trabalho?','red',true)">
+        <div class="icon-circle"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg></div>
+        <span class="btn-label">Fim Jornada</span>
+      </button>
+    </div>
+
+    <!-- LOG -->
+    <div class="log-section">
+      <div class="log-title">Registros de Hoje</div>
+      <div id="log-list">
+        <div class="empty-log">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          <div>Nenhum registro hoje.<br>Toque em um botão para começar.</div>
+        </div>
+      </div>
+    </div>
+    </div><!-- fim aba-registrar -->
+
+    <!-- ABA MINHA JORNADA -->
+    <div id="aba-jornada" class="hidden">
+      <div id="jornada-loading" style="text-align:center;padding:30px;color:var(--text-dim)">
+        Carregando dados...
+      </div>
+      <div id="jornada-content" class="hidden">
+        <!-- ACUMULADO DO MÊS -->
+        <div class="resumo-card">
+          <h4 id="jornada-mes-titulo">📅 Acumulado do Mês</h4>
+          <div class="stat-mini">
+            <div class="stat-mini-card"><div class="num" id="j-dias">—</div><div class="lbl">Dias Trabalhados</div></div>
+            <div class="stat-mini-card amber"><div class="num" id="j-horas">—</div><div class="lbl">Horas Totais</div></div>
+            <div class="stat-mini-card red"><div class="num" id="j-extras">—</div><div class="lbl">Horas Extras</div></div>
+            <div class="stat-mini-card green"><div class="num" id="j-intervalos">—</div><div class="lbl">Intervalos</div></div>
+          </div>
+          <div id="j-alertas-mes"></div>
+        </div>
+
+        <!-- BANCO DE HORAS GLOBAL -->
+        <div class="resumo-card" id="j-bh-card">
+          <h4>⏱️ Banco de Horas</h4>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0">
+            <div style="text-align:center;flex:1">
+              <div style="font-size:11px;color:var(--text-dim)">Extras Acumuladas</div>
+              <div style="font-size:18px;font-weight:700;color:var(--amber)" id="j-bh-extras">—</div>
+            </div>
+            <div style="text-align:center;flex:1">
+              <div style="font-size:11px;color:var(--text-dim)">Compensado</div>
+              <div style="font-size:18px;font-weight:700;color:var(--green)" id="j-bh-comp">—</div>
+            </div>
+            <div style="text-align:center;flex:1">
+              <div style="font-size:11px;color:var(--text-dim)">Saldo</div>
+              <div style="font-size:22px;font-weight:800" id="j-bh-saldo">—</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--text-dim);text-align:center" id="j-bh-msg"></div>
+        </div>
+
+        <!-- RESUMO DE ONTEM -->
+        <div class="resumo-card">
+          <h4>📋 Dia Anterior — <span id="j-ontem-data"></span></h4>
+          <div id="j-ontem-vazio" class="hidden" style="text-align:center;padding:16px;color:var(--text-dim)">Sem registros no dia anterior</div>
+          <div id="j-ontem-conteudo">
+            <div class="resumo-row"><span class="label">Início:</span><span class="val" id="j-ontem-inicio">—</span></div>
+            <div class="resumo-row"><span class="label">Fim:</span><span class="val" id="j-ontem-fim">—</span></div>
+            <div class="resumo-row"><span class="label">Horas Trabalhadas:</span><span class="val" id="j-ontem-horas">—</span></div>
+            <div class="resumo-row"><span class="label">Horas Extras:</span><span class="val" id="j-ontem-extras">—</span></div>
+            <div class="resumo-row"><span class="label">Intervalos:</span><span class="val" id="j-ontem-intervalos">—</span></div>
+            <div class="resumo-row"><span class="label">Refeição Registrada:</span><span class="val" id="j-ontem-refeicao">—</span></div>
+            <div class="resumo-row"><span class="label">Status:</span><span class="val" id="j-ontem-status">—</span></div>
+          </div>
+          <div id="j-ontem-registros" style="margin-top:10px"></div>
+        </div>
+
+        <!-- HOJE -->
+        <div class="resumo-card">
+          <h4>🕐 Hoje — <span id="j-hoje-data"></span></h4>
+          <div id="j-hoje-conteudo">
+            <div class="resumo-row"><span class="label">Início:</span><span class="val" id="j-hoje-inicio">—</span></div>
+            <div class="resumo-row"><span class="label">Horas até agora:</span><span class="val" id="j-hoje-horas">—</span></div>
+          </div>
+          <div id="j-hoje-registros" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-logout" onclick="logout()">Sair da sessão</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modal">
+  <div class="modal-card">
+    <h3 id="modal-title">Confirmar</h3>
+    <p id="modal-msg">Deseja registrar?</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-confirm" id="modal-confirm" onclick="executarRegistro()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== ESTADO =====
+const E = {
+  token: '', nome: '', placa: '', cpf: '',
+  urlScript: '',
+  logs: [],
+  filaOffline: [],
+  pendingEvento: null,
+  online: navigator.onLine
+};
+
+// ===== INICIALIZAÇÃO =====
+(function init() {
+  E.urlScript = localStorage.getItem('jornada_url') || '';
+  E.token = localStorage.getItem('jornada_token') || '';
+  E.nome = localStorage.getItem('jornada_nome') || '';
+  E.placa = localStorage.getItem('jornada_placa') || '';
+  E.filaOffline = JSON.parse(localStorage.getItem('jornada_fila') || '[]');
+  E.logs = JSON.parse(localStorage.getItem('jornada_logs_hoje') || '[]');
+
+  // Limpar logs de dias anteriores e de outros tokens
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  const tokenAtual = E.token.toUpperCase();
+  E.logs = E.logs.filter(l => l.data === hoje && (!tokenAtual || (l.token || '').toUpperCase() === tokenAtual));
+  salvarLogsLocal();
+
+  document.getElementById('inp-url').value = E.urlScript;
+  document.getElementById('inp-token').value = E.token;
+
+  var senhaSalva = localStorage.getItem('jornada_senha') || '';
+  if (E.token && E.nome && E.urlScript && senhaSalva) {
+    document.getElementById('screen-login').classList.add('hidden');
+    mostrarMain();
+  }
+
+  setInterval(atualizarRelogio, 1000);
+  atualizarRelogio();
+  monitorarConexao();
+
+  // Tentar enviar fila a cada 30 segundos
+  setInterval(processarFila, 30000);
+  if (E.filaOffline.length > 0) processarFila();
+})();
+
+// ===== RELÓGIO =====
+function atualizarRelogio() {
+  const n = new Date();
+  const el = document.getElementById('clock');
+  if (el) el.textContent = [n.getHours(), n.getMinutes(), n.getSeconds()].map(v => String(v).padStart(2,'0')).join(':');
+}
+
+// ===== CONEXÃO =====
+function monitorarConexao() {
+  const update = () => {
+    E.online = navigator.onLine;
+    const dot = document.getElementById('status-dot');
+    const txt = document.getElementById('status-text');
+    const banner = document.getElementById('offline-banner');
+    if (E.online) {
+      dot.className = 'status-dot online';
+      txt.textContent = 'Conectado';
+      banner.classList.add('hidden');
+      processarFila();
+    } else {
+      dot.className = 'status-dot offline';
+      txt.textContent = 'Sem conexão';
+      banner.classList.remove('hidden');
+      document.getElementById('offline-msg').textContent = 'Sem conexão — registros serão salvos localmente';
+    }
+    atualizarBannerFila();
+  };
+  window.addEventListener('online', update);
+  window.addEventListener('offline', update);
+  update();
+}
+
+function atualizarBannerFila() {
+  const banner = document.getElementById('pending-banner');
+  const msg = document.getElementById('pending-msg');
+  if (E.filaOffline.length > 0) {
+    banner.classList.remove('hidden');
+    msg.textContent = E.filaOffline.length + ' registro(s) na fila aguardando envio';
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+// ===== CONFIG =====
+function salvarConfig() {
+  const url = document.getElementById('inp-url').value.trim();
+  if (!url) return toast('Informe a URL do Web App', 'red');
+  localStorage.setItem('jornada_url', url);
+  E.urlScript = url;
+  toast('URL salva!', 'green');
+}
+
+// ===== AUTENTICAÇÃO =====
+async function autenticar() {
+  const token = document.getElementById('inp-token').value.trim().toUpperCase();
+  const senha = document.getElementById('inp-senha').value.trim();
+  E.urlScript = document.getElementById('inp-url').value.trim() || localStorage.getItem('jornada_url') || '';
+
+  if (!token) return toast('Informe seu token', 'red');
+  if (!/^[A-Z]{3}-\d{4}$/.test(token)) return toast('Token inválido. Formato: XXX-0000', 'red');
+  if (!E.urlScript) return toast('Configure a URL primeiro', 'red');
+
+  const btn = document.getElementById('btn-entrar');
+  btn.disabled = true;
+  btn.textContent = 'Validando...';
+
+  try {
+    let url = `${E.urlScript}?action=validar_token&token=${encodeURIComponent(token)}`;
+    if (senha) url += `&senha=${encodeURIComponent(senha)}`;
+
+    const resp = await fetch(url);
+    const data = await resp.json();
+
+    if (data.status === 'ok') {
+      E.token = token; E.nome = data.nome; E.placa = data.placa; E.cpf = data.cpf;
+      localStorage.setItem('jornada_token', token);
+      localStorage.setItem('jornada_senha', senha);
+      localStorage.setItem('jornada_nome', E.nome);
+      localStorage.setItem('jornada_placa', E.placa);
+      mostrarMain();
+      toast('Bem-vindo, ' + E.nome.split(' ')[0] + '!', 'green');
+    } else if (data.status === 'criar_senha') {
+      mostrarCriarSenha(token, data.nome);
+    } else {
+      toast(data.message || 'Token ou senha inválidos', 'red');
+    }
+  } catch (err) {
+    if (!navigator.onLine && localStorage.getItem('jornada_nome')) {
+      E.token = token; E.nome = localStorage.getItem('jornada_nome'); E.placa = localStorage.getItem('jornada_placa') || '';
+      mostrarMain();
+      toast('Login offline — dados serão validados quando conectar', 'amber');
+    } else { toast('Erro de conexão. Verifique sua internet.', 'red'); }
+  }
+  btn.disabled = false; btn.textContent = 'Entrar';
+}
+
+function mostrarCriarSenha(token, nome) {
+  const card = document.querySelector('#screen-login .card');
+  card.innerHTML = `
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:32px;margin-bottom:8px">🔐</div>
+      <div style="font-size:16px;font-weight:700">Bem-vindo, ${nome.split(' ')[0]}!</div>
+      <div style="font-size:13px;color:var(--text-dim);margin-top:4px">Primeiro acesso — crie sua senha pessoal</div>
+    </div>
+    <label>Crie sua senha de 4 dígitos</label>
+    <input type="password" id="inp-nova-senha" class="token-input" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" style="font-size:24px;letter-spacing:8px">
+    <p style="font-size:12px;color:var(--text-dim);margin:-8px 0 12px;text-align:center">Somente você saberá esta senha</p>
+    <label>Confirme a senha</label>
+    <input type="password" id="inp-confirma-senha" class="token-input" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]*" autocomplete="off" style="font-size:24px;letter-spacing:8px">
+    <p style="font-size:12px;color:var(--text-dim);margin:-8px 0 16px;text-align:center">Digite novamente para confirmar</p>
+    <button class="btn-primary" onclick="criarSenha('${token}')">Criar Senha e Entrar</button>
+  `;
+}
+
+async function criarSenha(token) {
+  const senha = document.getElementById('inp-nova-senha').value.trim();
+  const confirma = document.getElementById('inp-confirma-senha').value.trim();
+  if (!senha) return toast('Digite sua senha', 'red');
+  if (!/^\d{4}$/.test(senha)) return toast('Senha deve ter 4 dígitos numéricos', 'red');
+  if (senha !== confirma) return toast('As senhas não conferem', 'red');
+
+  try {
+    const url = `${E.urlScript}?action=validar_token&token=${encodeURIComponent(token)}&senha=${encodeURIComponent(senha)}&acao_senha=criar`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    if (data.status === 'ok') {
+      E.token = token; E.nome = data.nome; E.placa = data.placa; E.cpf = data.cpf;
+      localStorage.setItem('jornada_token', token);
+      localStorage.setItem('jornada_senha', senha);
+      localStorage.setItem('jornada_nome', E.nome);
+      localStorage.setItem('jornada_placa', E.placa);
+      mostrarMain();
+      toast('Senha criada! Bem-vindo, ' + E.nome.split(' ')[0] + '!', 'green');
+    } else { toast(data.message || 'Erro ao criar senha', 'red'); }
+  } catch (err) { toast('Erro de conexão', 'red'); }
+}
+
+function mostrarMain() {
+  document.getElementById('screen-login').classList.add('hidden');
+  document.getElementById('screen-login').style.display = 'none';
+  var mainEl = document.getElementById('screen-main');
+  mainEl.classList.remove('hidden');
+  mainEl.style.display = '';
+  document.getElementById('disp-nome').textContent = E.nome;
+  document.getElementById('disp-placa').textContent = E.placa ? 'Placa: ' + E.placa : '';
+  document.getElementById('disp-token').textContent = E.token;
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  E.logs = E.logs.filter(l => l.data === hoje && (l.token || '').toUpperCase() === E.token.toUpperCase());
+  salvarLogsLocal();
+  renderLog();
+  atualizarBannerFila();
+}
+
+function logout() {
+  if (E.filaOffline.length > 0) {
+    if (!confirm('Há ' + E.filaOffline.length + ' registro(s) na fila. Se sair, eles serão mantidos para envio posterior. Deseja sair?')) return;
+  }
+  localStorage.removeItem('jornada_token');
+  localStorage.removeItem('jornada_senha');
+  localStorage.removeItem('jornada_nome');
+  localStorage.removeItem('jornada_placa');
+  E.token = ''; E.nome = ''; E.placa = '';
+  document.getElementById('screen-main').classList.add('hidden');
+  document.getElementById('screen-main').style.display = 'none';
+  document.getElementById('screen-login').classList.remove('hidden');
+  document.getElementById('screen-login').style.display = '';
+  document.getElementById('inp-token').value = '';
+  document.getElementById('inp-senha').value = '';
+}
+
+// ===== MODAL =====
+function confirmar(evento, msg, color, isRed) {
+  E.pendingEvento = evento;
+  document.getElementById('modal-title').textContent = evento;
+  document.getElementById('modal-msg').textContent = msg;
+  document.getElementById('modal-confirm').className = 'btn-confirm' + (isRed ? ' red' : '');
+  document.getElementById('modal').classList.remove('hidden');
+}
+function fecharModal() { document.getElementById('modal').classList.add('hidden'); }
+
+// ===== GEOLOCALIZAÇÃO =====
+function obterGPS() {
+  return new Promise(resolve => {
+    if (!navigator.geolocation) return resolve({ lat: '', lng: '' });
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude.toFixed(6), lng: pos.coords.longitude.toFixed(6) }),
+      () => resolve({ lat: '', lng: '' }),
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  });
+}
+
+// ===== REGISTRO =====
+async function executarRegistro() {
+  fecharModal();
+  const evento = E.pendingEvento;
+  const now = new Date();
+  const dataStr = now.toLocaleDateString('pt-BR');
+  const horaStr = now.toLocaleTimeString('pt-BR');
+  const gps = await obterGPS();
+  const locStr = (gps.lat && gps.lng) ? `${gps.lat}, ${gps.lng}` : 'Indisponível';
+
+  const colorMap = {
+    'Início da Jornada': 'green', 'Retorno Condução': 'green',
+    'Parada Descanso': 'amber', 'Parada Refeição': 'amber',
+    'Espera (Carga/Descarga)': 'cyan', 'Fim da Jornada': 'red'
+  };
+
+  const registro = {
+    id: Date.now(),
+    token: E.token,
+    evento, data: dataStr, hora: horaStr,
+    lat: gps.lat, lng: gps.lng,
+    cor: colorMap[evento] || 'green',
+    status: 'pending',
+    tentativas: 0
+  };
+
+  E.logs.unshift({ ...registro, loc: locStr });
+  salvarLogsLocal();
+  renderLog();
+
+  if (E.online) {
+    await enviarRegistro(registro);
+  } else {
+    registro.status = 'offline';
+    E.filaOffline.push(registro);
+    salvarFila();
+    atualizarBannerFila();
+    atualizarLogStatus(registro.id, 'offline');
+    toast('Salvo localmente — será enviado quando conectar', 'amber');
+  }
+}
+
+async function enviarRegistro(registro) {
+  try {
+    const params = new URLSearchParams({
+      action: 'registro',
+      token: registro.token,
+      evento: registro.evento,
+      data: registro.data,
+      hora: registro.hora,
+      lat: registro.lat,
+      lng: registro.lng
+    });
+
+    const resp = await fetch(`${E.urlScript}?${params.toString()}`);
+    const data = await resp.json();
+
+    if (data.status === 'ok') {
+      atualizarLogStatus(registro.id, 'sent');
+      toast('Registro enviado!', 'green');
+      return true;
+    } else {
+      atualizarLogStatus(registro.id, 'error');
+      toast(data.message || 'Erro no registro', 'red');
+      return false;
+    }
+  } catch (err) {
+    // Falhou — adicionar à fila offline
+    if (!E.filaOffline.find(r => r.id === registro.id)) {
+      E.filaOffline.push(registro);
+      salvarFila();
+    }
+    atualizarLogStatus(registro.id, 'offline');
+    atualizarBannerFila();
+    toast('Sem conexão — salvo na fila local', 'amber');
+    return false;
+  }
+}
+
+// ===== FILA OFFLINE =====
+async function processarFila() {
+  if (!E.online || E.filaOffline.length === 0) return;
+
+  const filaAtual = [...E.filaOffline];
+  let enviados = 0;
+
+  for (const registro of filaAtual) {
+    registro.tentativas = (registro.tentativas || 0) + 1;
+    const sucesso = await enviarRegistroSilencioso(registro);
+    if (sucesso) {
+      E.filaOffline = E.filaOffline.filter(r => r.id !== registro.id);
+      atualizarLogStatus(registro.id, 'sent');
+      enviados++;
+    }
+    // Pequeno delay entre envios para não sobrecarregar
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  salvarFila();
+  atualizarBannerFila();
+  if (enviados > 0) {
+    toast(enviados + ' registro(s) da fila enviado(s)!', 'green');
+  }
+}
+
+async function enviarRegistroSilencioso(registro) {
+  try {
+    const params = new URLSearchParams({
+      action: 'registro',
+      token: registro.token,
+      evento: registro.evento,
+      data: registro.data,
+      hora: registro.hora,
+      lat: registro.lat,
+      lng: registro.lng
+    });
+    const resp = await fetch(`${E.urlScript}?${params.toString()}`);
+    const data = await resp.json();
+    return data.status === 'ok';
+  } catch { return false; }
+}
+
+// ===== PERSISTÊNCIA LOCAL =====
+function salvarFila() { localStorage.setItem('jornada_fila', JSON.stringify(E.filaOffline)); }
+function salvarLogsLocal() { localStorage.setItem('jornada_logs_hoje', JSON.stringify(E.logs)); }
+
+function atualizarLogStatus(id, status) {
+  const log = E.logs.find(l => l.id === id);
+  if (log) { log.status = status; salvarLogsLocal(); renderLog(); }
+}
+
+// ===== RENDER LOG =====
+function renderLog() {
+  const c = document.getElementById('log-list');
+  if (E.logs.length === 0) {
+    c.innerHTML = '<div class="empty-log"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg><div>Nenhum registro hoje.<br>Toque em um botão para começar.</div></div>';
+    return;
+  }
+  const labels = { sent:'Enviado', pending:'Enviando...', error:'Erro', offline:'Na fila' };
+  const statusClass = { sent:'sent', pending:'pending', error:'error', offline:'offline-q' };
+  c.innerHTML = E.logs.map(e => `
+    <div class="log-entry">
+      <div class="log-dot ${e.cor}"></div>
+      <div class="log-content">
+        <div class="log-event">${e.evento}</div>
+        <div class="log-time">${e.data} às ${e.hora}</div>
+        <div class="log-loc">📍 ${e.loc || 'GPS indisponível'}</div>
+      </div>
+      <span class="log-status ${statusClass[e.status] || 'pending'}">${labels[e.status] || 'Enviando...'}</span>
+    </div>
+  `).join('');
+}
+
+// ===== TOAST =====
+// ===== ABAS MOTORISTA =====
+function trocarAbaMot(aba, el) {
+  document.querySelectorAll('.mot-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('aba-registrar').classList.toggle('hidden', aba !== 'registrar');
+  document.getElementById('aba-jornada').classList.toggle('hidden', aba !== 'jornada');
+  if (aba === 'jornada') carregarMinhaJornada();
+}
+
+async function carregarMinhaJornada() {
+  const loading = document.getElementById('jornada-loading');
+  const content = document.getElementById('jornada-content');
+  loading.classList.remove('hidden');
+  content.classList.add('hidden');
+
+  try {
+    const resp = await fetch(`${E.urlScript}?action=minha_jornada&token=${encodeURIComponent(E.token)}`);
+    const d = await resp.json();
+    if (d.status !== 'ok') throw new Error(d.message);
+
+    loading.classList.add('hidden');
+    content.classList.remove('hidden');
+
+    // Mês
+    document.getElementById('jornada-mes-titulo').textContent = '📅 ' + d.mes.nome;
+    document.getElementById('j-dias').textContent = d.mes.diasTrabalhados;
+    document.getElementById('j-horas').textContent = d.mes.totalHoras.toFixed(1) + 'h';
+    document.getElementById('j-extras').textContent = d.mes.totalExtras.toFixed(1) + 'h';
+    document.getElementById('j-intervalos').textContent = d.mes.totalIntervalos;
+
+    const alertasMes = document.getElementById('j-alertas-mes');
+    if (d.mes.diasSemIntervalo > 0) {
+      alertasMes.innerHTML = `<div style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:8px 12px;margin-top:8px;font-size:12px;color:#EF4444">⚠️ ${d.mes.diasSemIntervalo} dia(s) sem intervalo adequado neste mês</div>`;
+    } else {
+      alertasMes.innerHTML = '';
+    }
+
+    // Banco de horas global
+    if (d.bancoHoras) {
+      const bh = d.bancoHoras;
+      const fhMot = (dec) => { if(!dec||dec<=0)return '0h'; const h=Math.floor(dec); const m=Math.round((dec-h)*60); return m>0?h+'h'+(m<10?'0':'')+m:h+'h'; };
+      document.getElementById('j-bh-extras').textContent = fhMot(bh.extrasAcumuladas);
+      document.getElementById('j-bh-comp').textContent = bh.compensacoes > 0 ? '-' + fhMot(bh.compensacoes) : '0h';
+      const saldoEl = document.getElementById('j-bh-saldo');
+      saldoEl.textContent = (bh.saldo >= 0 ? '+' : '') + fhMot(Math.abs(bh.saldo));
+      saldoEl.style.color = bh.saldo > 0 ? 'var(--amber)' : bh.saldo < 0 ? 'var(--red)' : 'var(--green)';
+      const msg = document.getElementById('j-bh-msg');
+      if (bh.saldo > 0) {
+        const diasEq = Math.round(bh.saldo / 8 * 10) / 10;
+        msg.textContent = 'Você tem ' + fhMot(bh.saldo) + ' para compensar (' + diasEq + ' dia(s) de folga)';
+      } else if (bh.saldo < 0) {
+        msg.textContent = 'Saldo negativo — horas já foram compensadas além do acumulado';
+      } else {
+        msg.textContent = 'Banco de horas zerado — sem saldo pendente';
+      }
+    }
+
+    // Ontem
+    document.getElementById('j-ontem-data').textContent = d.ontem.data;
+    if (d.ontem.registros.length === 0) {
+      document.getElementById('j-ontem-vazio').classList.remove('hidden');
+      document.getElementById('j-ontem-conteudo').classList.add('hidden');
+      document.getElementById('j-ontem-registros').innerHTML = '';
+    } else {
+      document.getElementById('j-ontem-vazio').classList.add('hidden');
+      document.getElementById('j-ontem-conteudo').classList.remove('hidden');
+      document.getElementById('j-ontem-inicio').textContent = d.ontem.inicio || '—';
+      document.getElementById('j-ontem-fim').textContent = d.ontem.fim || '—';
+
+      const hEl = document.getElementById('j-ontem-horas');
+      hEl.textContent = d.ontem.horasTrabalhadas.toFixed(1) + 'h';
+      hEl.className = 'val ' + (d.ontem.horasTrabalhadas > 10 ? 'red' : d.ontem.horasTrabalhadas > 8 ? 'amber' : 'green');
+
+      const eEl = document.getElementById('j-ontem-extras');
+      eEl.textContent = d.ontem.horasExtras > 0 ? d.ontem.horasExtras.toFixed(1) + 'h' : '0h';
+      eEl.className = 'val ' + (d.ontem.horasExtras > 0 ? 'amber' : 'green');
+
+      document.getElementById('j-ontem-intervalos').textContent = d.ontem.qtdIntervalos + ' (' + d.ontem.totalIntervalosMin + 'min)';
+
+      const rEl = document.getElementById('j-ontem-refeicao');
+      rEl.textContent = d.ontem.teveRefeicao ? 'Sim' : 'Não';
+      rEl.className = 'val ' + (d.ontem.teveRefeicao ? 'green' : 'red');
+
+      const sEl = document.getElementById('j-ontem-status');
+      sEl.textContent = d.ontem.status;
+      sEl.className = 'val ' + (d.ontem.status === 'REGULAR' ? 'green' : d.ontem.status === 'COM EXTRA' ? 'amber' : 'red');
+
+      // Registros detalhados
+      document.getElementById('j-ontem-registros').innerHTML = '<div style="font-size:11px;color:var(--text-dim);margin-bottom:4px;text-transform:uppercase;font-weight:600">Detalhes</div>' +
+        d.ontem.registros.map(r => `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:var(--text-dim);font-family:'JetBrains Mono',monospace">${r.hora}</span><span>${r.evento}</span></div>`).join('');
+    }
+
+    // Hoje
+    document.getElementById('j-hoje-data').textContent = d.hoje.data;
+    document.getElementById('j-hoje-inicio').textContent = d.hoje.inicio || '—';
+    document.getElementById('j-hoje-horas').textContent = d.hoje.horasAteAgora > 0 ? d.hoje.horasAteAgora.toFixed(1) + 'h' : '—';
+
+    if (d.hoje.registros.length > 0) {
+      document.getElementById('j-hoje-registros').innerHTML = d.hoje.registros.map(r => `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:var(--text-dim);font-family:'JetBrains Mono',monospace">${r.hora}</span><span>${r.evento}</span></div>`).join('');
+    }
+
+  } catch (err) {
+    loading.textContent = 'Erro ao carregar: ' + err.message;
+  }
+}
+
+// ===== TOAST =====
+function toast(msg, color) {
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const el = document.createElement('div');
+  el.className = 'toast';
+  const icon = color === 'green' ? '✅' : color === 'red' ? '❌' : '⏳';
+  el.innerHTML = `${icon} ${msg}`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+</script>
+</body>
+</html>

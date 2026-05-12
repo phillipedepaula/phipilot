@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhiPilot — Painel de Controle</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#F8FAFC;--surface:#FFFFFF;--surface-2:#F1F5F9;--border:#E2E8F0;
+    --text:#0F172A;--text-dim:#64748B;--accent:#2563EB;--accent-light:#DBEAFE;
+    --green:#16A34A;--green-bg:#DCFCE7;--amber:#D97706;--amber-bg:#FEF3C7;
+    --red:#DC2626;--red-bg:#FEE2E2;--cyan:#0891B2;--cyan-bg:#CFFAFE;
+    --purple:#7C3AED;--purple-bg:#EDE9FE;
+  }
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+  .app{max-width:1200px;margin:0 auto;padding:24px}
+
+  .page-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;background:var(--surface);border:1px solid var(--border);border-radius:16px;margin-bottom:24px}
+  .page-header .left{display:flex;align-items:center;gap:16px}
+  .logo-box{width:48px;height:48px;background:linear-gradient(135deg,#0F172A,#3B82F6);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:white;font-family:'JetBrains Mono',monospace}
+  .logo-box svg{width:26px;height:26px}
+  .page-title{font-size:20px;font-weight:700}
+  .page-subtitle{font-size:13px;color:var(--text-dim)}
+  .btn{padding:10px 16px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text);transition:all .15s}
+  .btn:hover{background:var(--surface-2)}
+  .btn.primary{background:var(--accent);color:white;border-color:var(--accent)}
+  .btn.sm{padding:6px 12px;font-size:12px}
+  .btn.green{background:var(--green);color:white;border-color:var(--green)}
+  .btn.red-outline{border-color:var(--red);color:var(--red)}
+  .btn.red-outline:hover{background:var(--red-bg)}
+
+  .tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:24px}
+  .tab{flex:1;padding:12px 8px;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--text-dim);transition:all .15s;position:relative}
+  .tab.active{background:var(--accent);color:white;box-shadow:0 2px 8px rgba(37,99,235,.3)}
+  .tab:hover:not(.active){background:var(--surface-2);color:var(--text)}
+  .tab .tab-badge{position:absolute;top:4px;right:8px;background:var(--red);color:white;font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;min-width:18px;text-align:center}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:20px}
+  .card-title{font-size:16px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+  .card-subtitle{font-size:12px;color:var(--text-dim);margin-bottom:16px;font-style:italic}
+
+  .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+  .stat-value{font-size:28px;font-weight:700;font-family:'JetBrains Mono',monospace}
+  .stat-label{font-size:11px;color:var(--text-dim);margin-top:4px;font-weight:500;line-height:1.3}
+  .stat-card.red .stat-value{color:var(--red)}
+  .stat-card.amber .stat-value{color:var(--amber)}
+  .stat-card.green .stat-value{color:var(--green)}
+  .stat-card.cyan .stat-value{color:var(--cyan)}
+  .stat-card.purple .stat-value{color:var(--purple)}
+
+  .form-row{display:flex;gap:12px;margin-bottom:16px;align-items:end;flex-wrap:wrap}
+  .form-group{display:flex;flex-direction:column;gap:6px}
+  .form-group label{font-size:12px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px}
+  .form-group select,.form-group input{padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;background:var(--surface);color:var(--text);outline:none;min-width:180px}
+
+  .table-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{background:var(--surface-2);font-weight:600;text-transform:uppercase;letter-spacing:.3px;font-size:11px;color:var(--text-dim);padding:12px 10px;text-align:left;white-space:nowrap}
+  td{padding:10px;border-top:1px solid var(--border);vertical-align:middle}
+  tr:hover td{background:var(--surface-2)}
+
+  .badge-status{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:600;white-space:nowrap}
+  .badge-green{background:var(--green-bg);color:var(--green)}
+  .badge-amber{background:var(--amber-bg);color:var(--amber)}
+  .badge-red{background:var(--red-bg);color:var(--red)}
+  .badge-cyan{background:var(--cyan-bg);color:var(--cyan)}
+  .badge-purple{background:var(--purple-bg);color:var(--purple)}
+
+  .monitor-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .monitor-count{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700}
+  .monitor-count.zero{color:var(--green)}
+  .monitor-count.alert{color:var(--red)}
+
+  .empty-state{text-align:center;padding:24px;color:var(--text-dim);font-size:14px}
+  .empty-state .check{font-size:32px;margin-bottom:8px}
+
+  .loading{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--text-dim);gap:8px}
+  .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .config-bar{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;font-size:13px}
+  .config-bar input{flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none}
+
+  .date-nav{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+  .date-nav button{padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px}
+  .date-nav .date-display{font-size:15px;font-weight:700;min-width:200px;text-align:center}
+
+  .expand-btn{background:none;border:none;cursor:pointer;font-size:16px;padding:4px 8px;border-radius:6px}
+  .expand-btn:hover{background:var(--surface-2)}
+
+  .detail-row td{background:var(--surface-2)!important;padding:12px 16px}
+  .detail-content{display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:12px}
+  .detail-block h5{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);margin-bottom:6px}
+  .detail-item{display:flex;justify-content:space-between;padding:3px 0}
+  .detail-item .label{color:var(--text-dim)}.detail-item .val{font-weight:600;font-family:'JetBrains Mono',monospace}
+  .interval-list{list-style:none;padding:0}
+  .interval-list li{padding:3px 0;display:flex;gap:8px;align-items:center}
+  .interval-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .interval-dot.refeicao{background:var(--amber)}.interval-dot.descanso{background:var(--cyan)}
+
+  .report-preview{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:16px}
+  .report-header{display:flex;justify-content:space-between;align-items:start;margin-bottom:16px;padding-bottom:16px;border-bottom:2px solid var(--border)}
+  .report-empresa{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px}
+  .report-title{font-size:18px;font-weight:700;margin-top:4px}
+  .report-section{margin-bottom:16px}
+  .report-section h4{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;color:var(--accent);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+  .report-field{display:flex;justify-content:space-between;padding:4px 0;font-size:13px}
+  .report-field .label{color:var(--text-dim)}.report-field .value{font-weight:600}
+  .report-totais{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-top:8px}
+
+  .hidden{display:none!important}
+  @media(max-width:768px){
+    .stats-row{grid-template-columns:repeat(2,1fr)}
+    .form-row{flex-direction:column}
+    .form-group select,.form-group input{min-width:100%}
+    .page-header{flex-direction:column;gap:12px;text-align:center}
+    .detail-content{grid-template-columns:1fr}
+    .tab{font-size:11px;padding:10px 4px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="config-bar" id="config-bar">
+    <span>🔗</span>
+    <input type="text" id="cfg-url" placeholder="URL do Web App (Google Apps Script)">
+    <button class="btn primary" onclick="salvarURL()">Conectar</button>
+  </div>
+
+  <div class="page-header">
+    <div class="left">
+      <div class="logo-box">Φ</div>
+      <div>
+        <div class="page-title">PhiPilot</div>
+        <div class="page-subtitle">Sistema de Controle de Jornada</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" onclick="carregarTudo()">🔄 Atualizar</button>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="trocarAba('dashboard',this)">📈 Dashboard</button>
+    <button class="tab" onclick="trocarAba('conformidade',this)">⚖️ Conformidade<span class="tab-badge hidden" id="badge-conf">0</span></button>
+    <button class="tab" onclick="trocarAba('auditoria',this)">📊 Auditoria</button>
+    <button class="tab" onclick="trocarAba('notificacoes',this)">📨 Notific.</button>
+    <button class="tab" onclick="trocarAba('advertencias',this)">📝 Advert.</button>
+    <button class="tab" onclick="trocarAba('bancohoras',this)">⏱️ Banco H.</button>
+    <button class="tab" onclick="trocarAba('documentos',this)">📄 Docs</button>
+    <button class="tab" onclick="trocarAba('relatorios',this)">📋 Relatórios</button>
+  </div>
+
+  <!-- ===== ABA DASHBOARD ===== -->
+  <div id="aba-dashboard">
+    <div class="card" style="margin-bottom:16px;padding:12px 20px;display:flex;align-items:center;gap:16px">
+      <label style="font-weight:600;font-size:13px;white-space:nowrap">Empresa:</label>
+      <select id="db-empresa" onchange="carregarDashboard()" style="flex:1;max-width:400px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px">
+        <option value="">Todas as empresas</option>
+      </select>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-value" id="db-ativos">-</div><div class="stat-label">Motoristas Ativos</div></div>
+      <div class="stat-card"><div class="stat-value" id="db-jornadas">-</div><div class="stat-label">Jornadas no Mês</div></div>
+      <div class="stat-card amber"><div class="stat-value" id="db-horas">-</div><div class="stat-label">Horas Totais</div></div>
+      <div class="stat-card red"><div class="stat-value" id="db-extras">-</div><div class="stat-label">Horas Extras</div></div>
+      <div class="stat-card green"><div class="stat-value" id="db-conformidade">-</div><div class="stat-label">Taxa Conformidade</div></div>
+    </div>
+
+    <!-- GRÁFICOS -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+      <div class="card">
+        <div class="card-title">Conformidade das Jornadas</div>
+        <div id="grafico-pizza" style="padding:16px"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Média de Horas por Dia da Semana</div>
+        <div id="grafico-dias" style="padding:16px"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🏆 Top 10 — Horas Extras por Motorista</div>
+      <div id="grafico-ranking" style="padding:8px"></div>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="card-title">📄 Relatório Executivo Mensal</div>
+          <div class="card-subtitle">PDF de 2 páginas com indicadores consolidados para apresentar ao empresário</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button class="btn primary" onclick="gerarRelatorioExecutivo()" id="btn-exec">📄 Gerar PDF Executivo</button>
+          <span id="exec-status" style="font-size:13px"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ABA CONFORMIDADE ===== -->
+  <div id="aba-conformidade" class="hidden">
+
+    <!-- STATS RESUMO -->
+    <div class="stats-row">
+      <div class="stat-card red"><div class="stat-value" id="cf-interjornada">-</div><div class="stat-label">Interjornada &lt;11h</div></div>
+      <div class="stat-card amber"><div class="stat-value" id="cf-folga">-</div><div class="stat-label">Sem Folga (6+ dias)</div></div>
+      <div class="stat-card purple"><div class="stat-value" id="cf-intrajornada">-</div><div class="stat-label">Sem Intervalo Ontem</div></div>
+      <div class="stat-card green"><div class="stat-value" id="cf-total-ok">-</div><div class="stat-label">Conformes</div></div>
+      <div class="stat-card amber"><div class="stat-value" id="cf-vencimentos">-</div><div class="stat-label">Vencimentos Próximos</div></div>
+      <div class="stat-card"><div class="stat-value" id="cf-afastados">-</div><div class="stat-label">Afastados</div></div>
+    </div>
+
+    <!-- MONITOR 1: INTERJORNADA -->
+    <div class="card">
+      <div class="monitor-header">
+        <div>
+          <div class="card-title">🔴 Interjornada Violada (&lt; 11h)</div>
+          <div class="card-subtitle">Art. 235-C, §3º, CLT — Intervalo mínimo de 11 horas entre jornadas</div>
+        </div>
+        <div class="monitor-count" id="m1-count">-</div>
+      </div>
+      <div id="m1-content"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
+    </div>
+
+    <!-- MONITOR 2: FOLGA 7 DIAS -->
+    <div class="card">
+      <div class="monitor-header">
+        <div>
+          <div class="card-title">🟡 Folga Semanal — Dias Consecutivos</div>
+          <div class="card-subtitle">Art. 235-C, §3º c/c Art. 67, CLT — Descanso semanal de 35 horas a cada 7 dias</div>
+        </div>
+        <div class="monitor-count" id="m2-count">-</div>
+      </div>
+      <div id="m2-content"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
+    </div>
+
+    <!-- MONITOR 3: INTRAJORNADA -->
+    <div class="card">
+      <div class="monitor-header">
+        <div>
+          <div class="card-title">🟣 Intrajornada Não Registrada (ontem)</div>
+          <div class="card-subtitle">Art. 71, CLT — Intervalo mínimo de 1h para jornada superior a 6 horas</div>
+        </div>
+        <div class="monitor-count" id="m3-count">-</div>
+      </div>
+      <div id="m3-content"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
+    </div>
+
+    <!-- MONITOR 4: VENCIMENTOS -->
+    <div class="card">
+      <div class="monitor-header">
+        <div>
+          <div class="card-title">📋 Vencimentos — CNH, Periódico e Toxicológico</div>
+          <div class="card-subtitle">NR-7, Lei 13.103/2015, CTB — Documentos obrigatórios para exercício da função</div>
+        </div>
+        <div class="monitor-count" id="m4-count">-</div>
+      </div>
+      <div id="m4-content"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
+    </div>
+
+    <!-- MONITOR 5: AFASTADOS -->
+    <div class="card" id="card-afastados" style="display:none">
+      <div class="monitor-header" style="border-left-color:var(--accent)">
+        <div>
+          <div class="card-title">🏥 Motoristas Afastados</div>
+          <div class="card-subtitle">Atestado médico, INSS, férias, licenças e suspensões em vigor</div>
+        </div>
+        <div class="monitor-count" id="m5-count">0</div>
+      </div>
+      <div id="m5-content"></div>
+    </div>
+  </div>
+
+  <!-- ===== ABA AUDITORIA DIÁRIA ===== -->
+  <div id="aba-auditoria" class="hidden">
+    <div class="date-nav">
+      <button onclick="mudarDia(-1)">◀</button>
+      <div class="date-display" id="audit-date-display">—</div>
+      <button onclick="mudarDia(1)">▶</button>
+      <input type="date" id="audit-date-picker" onchange="irParaData()">
+      <button class="btn primary sm" onclick="carregarAuditoria()">🔄</button>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-value" id="au-trabalharam">-</div><div class="stat-label">Trabalharam</div></div>
+      <div class="stat-card amber"><div class="stat-value" id="au-extras">-</div><div class="stat-label">Horas Extras</div></div>
+      <div class="stat-card red"><div class="stat-value" id="au-irregulares">-</div><div class="stat-label">Irregular &gt;10h</div></div>
+      <div class="stat-card red"><div class="stat-value" id="au-sem-intervalo">-</div><div class="stat-label">Sem Intervalo</div></div>
+      <div class="stat-card red"><div class="stat-value" id="au-interjornada">-</div><div class="stat-label">Interjornada &lt;11h</div></div>
+      <div class="stat-card green"><div class="stat-value" id="au-regulares">-</div><div class="stat-label">Regulares</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Conferência do Dia</div>
+      <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px">Clique ▶ para detalhes. Irregulares no topo.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th style="width:30px"></th><th>Motorista</th><th>Placa</th><th>Início</th><th>Fim</th><th>Horas</th><th>H.Extra</th><th>Intervalos</th><th>Interjornada</th><th>Status</th><th></th></tr></thead>
+        <tbody id="tabela-auditoria"><tr><td colspan="11" class="loading"><div class="spinner"></div></td></tr></tbody>
+      </table></div>
+    </div>
+
+    <!-- REGISTRO DE FOLGA/FERIADO -->
+    <div class="card">
+      <div class="card-title">📅 Registrar Folga / Feriado</div>
+      <div class="card-subtitle">Marque dias em que o motorista não trabalhou. Aparece no relatório/cartão de ponto.</div>
+      <div class="form-row">
+        <div class="form-group"><label>Motorista</label><select id="folga-motorista"><option value="">Selecione...</option></select></div>
+        <div class="form-group"><label>Data</label><input type="date" id="folga-data"></div>
+        <div class="form-group">
+          <label>Tipo</label>
+          <select id="folga-tipo">
+            <option value="FOLGA SEMANAL">Folga Semanal (DSR)</option>
+            <option value="FOLGA COMPENSATÓRIA — Banco de Horas">Folga Compensatória (B.H.)</option>
+            <option value="FERIADO">Feriado</option>
+            <option value="FERIADO MUNICIPAL">Feriado Municipal</option>
+            <option value="FERIADO ESTADUAL">Feriado Estadual</option>
+            <option value="FOLGA — Acordo Individual">Folga — Acordo Individual</option>
+            <option value="ATESTADO MÉDICO">Atestado Médico</option>
+            <option value="FALTA JUSTIFICADA">Falta Justificada</option>
+            <option value="FALTA INJUSTIFICADA">Falta Injustificada</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:end;gap:10px">
+          <button class="btn primary" onclick="registrarFolga()" id="btn-folga">📅 Registrar</button>
+        </div>
+      </div>
+      <span id="folga-status" style="font-size:13px"></span>
+    </div>
+  </div>
+
+  <!-- ===== ABA NOTIFICAÇÕES ===== -->
+  <div id="aba-notificacoes" class="hidden">
+    <div class="card">
+      <div class="card-title">📨 Emitir Notificação</div>
+      <div class="card-subtitle">Comunicação formal sem caráter punitivo. Serve para orientar, cobrar providências e criar registro documental antes de medidas disciplinares.</div>
+      <div class="form-row">
+        <div class="form-group"><label>Motorista</label><select id="notif-motorista"><option value="">Selecione...</option></select></div>
+        <div class="form-group"><label>Empresa Emissora</label><select id="notif-empresa"><option value="">Selecione...</option></select></div>
+        <div class="form-group">
+          <label>Tipo de Notificação</label>
+          <select id="notif-tipo">
+            <option value="">Selecione...</option>
+            <option value="Orientação — Registro de jornada obrigatório">Orientação — Registro de jornada</option>
+            <option value="Orientação — Uso correto do sistema de ponto">Orientação — Uso do sistema de ponto</option>
+            <option value="Orientação — Registro de intervalos obrigatório">Orientação — Registro de intervalos</option>
+            <option value="Renovação de CNH — Providência necessária">Renovação de CNH</option>
+            <option value="Exame Periódico — Agendamento necessário">Exame Periódico — Agendamento</option>
+            <option value="Exame Toxicológico — Agendamento necessário">Exame Toxicológico — Agendamento</option>
+            <option value="Folga obrigatória — Determinação de descanso">Folga obrigatória</option>
+            <option value="Cumprimento de intervalo intrajornada">Intervalo intrajornada</option>
+            <option value="Cumprimento de intervalo interjornada (11h)">Intervalo interjornada</option>
+            <option value="Comunicação geral da empresa">Comunicação geral</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Prazo (se aplicável)</label><input type="text" id="notif-prazo" placeholder="Ex: 15 dias, até 30/06/2026" style="min-width:200px"></div>
+      </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label>Conteúdo da Notificação</label>
+        <textarea id="notif-descricao" rows="3" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;resize:vertical" placeholder="Descreva o conteúdo da comunicação..."></textarea>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="btn primary" onclick="emitirNotificacao()" id="btn-notif">📨 Emitir Notificação</button>
+        <span id="notif-status" style="font-size:13px"></span>
+      </div>
+      <div id="notif-preview" class="hidden" style="margin-top:16px;padding:16px;background:var(--green-bg);border:1px solid var(--green);border-radius:12px">
+        <div style="font-weight:700;color:var(--green);margin-bottom:8px">✅ Notificação emitida</div>
+        <div id="notif-result"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Histórico de Notificações</div>
+      <div class="form-row">
+        <div class="form-group"><label>Filtrar por Motorista</label><select id="notif-filtro"><option value="">Todos</option></select></div>
+        <button class="btn" onclick="carregarHistoricoNotif()">🔍 Buscar</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nº</th><th>Data</th><th>Motorista</th><th>Tipo</th><th>Prazo</th><th>Nº Ant.</th><th>Status</th></tr></thead>
+          <tbody id="tabela-notif"><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-dim)">Clique Buscar para ver o histórico</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ABA ADVERTÊNCIAS ===== -->
+  <div id="aba-advertencias" class="hidden">
+    <div class="card">
+      <div class="card-title">📝 Emitir Advertência</div>
+      <div class="card-subtitle">Preencha após confirmar a infração com o motorista pelo WhatsApp (contraditório e ampla defesa)</div>
+      <div class="form-row">
+        <div class="form-group"><label>Motorista</label><select id="adv-motorista"><option value="">Selecione...</option></select></div>
+        <div class="form-group"><label>Empresa Emissora</label><select id="adv-empresa"><option value="">Selecione...</option></select></div>
+        <div class="form-group"><label>Data da Infração</label><input type="date" id="adv-data"></div>
+        <div class="form-group">
+          <label>Tipo de Infração</label>
+          <select id="adv-tipo">
+            <option value="">Selecione...</option>
+            <option value="Interjornada inferior a 11h">Interjornada inferior a 11h</option>
+            <option value="Intrajornada - Ausência de intervalo para refeição">Intrajornada — Sem intervalo refeição</option>
+            <option value="Intrajornada - Intervalo inferior a 1h">Intrajornada — Intervalo inferior a 1h</option>
+            <option value="Jornada superior a 10h diárias">Jornada superior a 10h diárias</option>
+            <option value="7 dias consecutivos sem folga semanal">7+ dias consecutivos sem folga</option>
+            <option value="Não registro de ponto no sistema">Não registro de ponto no sistema</option>
+            <option value="Uso indevido do token de identificação">Uso indevido do token</option>
+            <option value="Outra infração contratual">Outra infração contratual</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Descrição do Fato</label>
+        <textarea id="adv-descricao" rows="3" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;resize:vertical" placeholder="Descreva o ocorrido com data, hora e detalhes..."></textarea>
+      </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label>Contraditório (resposta do motorista pelo WhatsApp)</label>
+        <textarea id="adv-contraditorio" rows="2" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;resize:vertical" placeholder="Ex: Motorista confirmou via WhatsApp às 14:30 do dia 11/05/2026 que não realizou o intervalo..."></textarea>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="btn primary" onclick="emitirAdvertencia()" id="btn-emitir">⚠️ Emitir Advertência</button>
+        <span id="adv-status" style="font-size:13px"></span>
+      </div>
+      <div id="adv-preview" class="hidden" style="margin-top:16px;padding:16px;background:var(--green-bg);border:1px solid var(--green);border-radius:12px">
+        <div style="font-weight:700;color:var(--green);margin-bottom:8px">✅ Advertência emitida com sucesso</div>
+        <div id="adv-result"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Histórico de Advertências</div>
+      <div class="form-row">
+        <div class="form-group"><label>Filtrar por Motorista</label><select id="adv-filtro"><option value="">Todos</option></select></div>
+        <button class="btn" onclick="carregarHistoricoAdv()">🔍 Buscar</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nº</th><th>Data</th><th>Motorista</th><th>Infração</th><th>Grau</th><th>Status</th></tr></thead>
+          <tbody id="tabela-adv"><tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-dim)">Selecione um motorista ou clique Buscar para ver todos</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ABA BANCO DE HORAS ===== -->
+  <div id="aba-bancohoras" class="hidden">
+    <div class="stats-row">
+      <div class="stat-card amber"><div class="stat-value" id="bh-total-extras">-</div><div class="stat-label">Total H.E. Acumuladas</div></div>
+      <div class="stat-card green"><div class="stat-value" id="bh-total-comp">-</div><div class="stat-label">Total Compensado</div></div>
+      <div class="stat-card red"><div class="stat-value" id="bh-total-saldo">-</div><div class="stat-label">Saldo Pendente</div></div>
+      <div class="stat-card cyan"><div class="stat-value" id="bh-mot-saldo">-</div><div class="stat-label">Motoristas com Saldo</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⏱️ Saldo por Motorista</div>
+      <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px">Horas extras acumuladas via Resumo Diário menos compensações por folga. Ordenado por saldo.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Motorista</th><th>Placa</th><th>H.E. Acumuladas</th><th>Compensado</th><th>Saldo</th><th>Dias Equiv.</th><th>Ação</th></tr></thead>
+          <tbody id="tabela-bh"><tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📝 Registrar Compensação (Folga)</div>
+      <div class="card-subtitle">Registre quando um motorista tirar folga para abater horas do banco</div>
+      <div class="form-row">
+        <div class="form-group"><label>Motorista</label><select id="bh-motorista"><option value="">Selecione...</option></select></div>
+        <div class="form-group"><label>Data da Folga</label><input type="date" id="bh-data"></div>
+        <div class="form-group">
+          <label>Tipo</label>
+          <select id="bh-tipo">
+            <option value="Folga compensatória — 1 dia (8h)">Folga 1 dia (8h)</option>
+            <option value="Folga compensatória — 2 dias (16h)">Folga 2 dias (16h)</option>
+            <option value="Folga compensatória — 3 dias (24h)">Folga 3 dias (24h)</option>
+            <option value="Meio período (4h)">Meio período (4h)</option>
+            <option value="Compensação parcial — horas avulsas">Horas avulsas</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Horas a Debitar</label><input type="number" id="bh-horas" placeholder="8" step="0.5" min="0.5" style="min-width:100px"></div>
+      </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label>Observação</label>
+        <input type="text" id="bh-ref" placeholder="Ex: Folga concedida pelo chefe de logística" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px">
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="btn primary" onclick="registrarCompensacao()" id="btn-comp">✅ Registrar Compensação</button>
+        <span id="bh-status" style="font-size:13px"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ABA DOCUMENTOS ===== -->
+  <div id="aba-documentos" class="hidden">
+    <div class="card">
+      <div class="card-title">📄 Geração de Documentos Operacionais</div>
+      <div class="card-subtitle">Selecione o motorista e clique no documento para gerar automaticamente com todos os dados preenchidos. O PDF é salvo na pasta do motorista no Drive.</div>
+      <div class="form-row" style="margin-bottom:20px">
+        <div class="form-group" style="flex:1">
+          <label>Motorista</label>
+          <select id="doc-motorista" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px"><option value="">Selecione o motorista...</option></select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+        <div class="card" style="border:2px solid var(--accent);cursor:pointer;transition:transform .15s" onclick="gerarDoc('adesao')" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform=''">
+          <div style="text-align:center;padding:12px 0">
+            <div style="font-size:28px;margin-bottom:8px">📋</div>
+            <div style="font-weight:700;font-size:14px;color:var(--accent)">Termo de Adesão</div>
+            <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Adesão ao sistema de controle de jornada eletrônico PhiPilot</div>
+          </div>
+        </div>
+        <div class="card" style="border:2px solid var(--accent);cursor:pointer;transition:transform .15s" onclick="gerarDoc('treinamento')" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform=''">
+          <div style="text-align:center;padding:12px 0">
+            <div style="font-size:28px;margin-bottom:8px">🎓</div>
+            <div style="font-weight:700;font-size:14px;color:var(--accent)">Termo de Treinamento</div>
+            <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Capacitação para uso do sistema, conteúdo e avaliação prática</div>
+          </div>
+        </div>
+        <div class="card" style="border:2px solid var(--accent);cursor:pointer;transition:transform .15s" onclick="gerarDoc('responsabilidade')" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform=''">
+          <div style="text-align:center;padding:12px 0">
+            <div style="font-size:28px;margin-bottom:8px">🔐</div>
+            <div style="font-weight:700;font-size:14px;color:var(--accent)">Termo de Responsabilidade</div>
+            <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Responsabilidade sobre token e senha de acesso</div>
+          </div>
+        </div>
+        <div class="card" style="border:2px solid var(--amber);cursor:pointer;transition:transform .15s" onclick="gerarDoc('chamado')" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform=''">
+          <div style="text-align:center;padding:12px 0">
+            <div style="font-size:28px;margin-bottom:8px">📝</div>
+            <div style="font-weight:700;font-size:14px;color:var(--amber)">Chamado de Correção</div>
+            <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Formulário para correção de registro — motorista preenche e assina</div>
+          </div>
+        </div>
+        <div class="card" style="border:2px solid var(--amber);cursor:pointer;transition:transform .15s" onclick="gerarDoc('abono')" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform=''">
+          <div style="text-align:center;padding:12px 0">
+            <div style="font-size:28px;margin-bottom:8px">✅</div>
+            <div style="font-weight:700;font-size:14px;color:var(--amber)">Autorização de Abono</div>
+            <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Autorização para registro manual — vinculado ao chamado de correção</div>
+          </div>
+        </div>
+        <div class="card" style="border:2px solid var(--red);cursor:pointer;transition:transform .15s" onclick="gerarDoc('aviso_previo')" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform=''">
+          <div style="text-align:center;padding:12px 0">
+            <div style="font-size:28px;margin-bottom:8px">📨</div>
+            <div style="font-weight:700;font-size:14px;color:var(--red)">Aviso Prévio</div>
+            <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Dispensa sem justa causa — calcula dias automaticamente</div>
+          </div>
+        </div>
+      </div>
+      <div id="doc-status" style="margin-top:16px;font-size:13px"></div>
+      <div id="doc-preview" style="margin-top:16px" class="hidden">
+        <div class="card-title">Pré-visualização</div>
+        <iframe id="doc-iframe" style="width:100%;height:600px;border:1px solid var(--border);border-radius:10px"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ABA RELATÓRIOS ===== -->
+  <div id="aba-relatorios" class="hidden">
+    <div class="card">
+      <div class="card-title">Gerar Relatório Individual</div>
+      <div class="form-row">
+        <div class="form-group"><label>Motorista</label><select id="sel-motorista"><option value="">Selecione...</option></select></div>
+        <div class="form-group"><label>Tipo</label><select id="sel-tipo"><option value="diario">Diário</option><option value="semanal">Semanal</option><option value="mensal">Mensal</option></select></div>
+        <div class="form-group"><label>Data Início</label><input type="date" id="inp-dt-inicio"></div>
+        <div class="form-group"><label>Data Fim</label><input type="date" id="inp-dt-fim"></div>
+        <button class="btn primary" onclick="gerarRelatorio()">Gerar</button>
+      </div>
+    </div>
+    <div id="report-container" class="hidden">
+      <div class="card">
+        <div class="card-title">Pré-visualização</div>
+        <div class="report-preview" id="report-preview"></div>
+        <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;align-items:center">
+          <button class="btn primary" onclick="imprimirRelatorio()">🖨️ Imprimir / PDF</button>
+          <button class="btn green" onclick="salvarNoDrive()" id="btn-drive">📁 Salvar no Drive</button>
+          <button class="btn" onclick="copiarRelatorio()">📋 Copiar Texto</button>
+          <span id="drive-status" style="font-size:13px"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- BACKUP E ARQUIVAMENTO -->
+    <div class="card">
+      <div class="card-title">📂 Backup e Arquivamento</div>
+      <div class="card-subtitle">Backup diário copia os registros para o Drive sem apagar da planilha. Arquivamento mensal exporta e limpa registros do mês anterior.</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:end">
+        <div class="form-group">
+          <label>Data para backup diário</label>
+          <input type="date" id="backup-data">
+        </div>
+        <button class="btn primary" onclick="fazerBackupDiario()" id="btn-backup">📋 Backup do Dia</button>
+        <button class="btn" onclick="fazerArquivamentoMensal()" id="btn-arquivar" style="border-color:var(--red);color:var(--red)">🗄️ Arquivar Mês Anterior</button>
+      </div>
+      <div id="backup-status" style="margin-top:12px;font-size:13px"></div>
+    </div>
+  </div>
+
+<script>
+let URL_SCRIPT = localStorage.getItem('ctrl_url') || '';
+
+// Formatar horas decimais para HHhMM (ex: 7.9 → 7h54, 11.8 → 11h48)
+function fh(decimal){
+  if(!decimal||decimal<=0)return '0h';
+  const h=Math.floor(decimal);
+  const m=Math.round((decimal-h)*60);
+  return m>0?h+'h'+String(m).padStart(2,'0'):h+'h';
+}
+let MOTORISTAS = [], AUDITORIA = null, RELATORIO_ATUAL = null;
+let AUDIT_DATE = new Date(); AUDIT_DATE.setDate(AUDIT_DATE.getDate() - 1);
+
+(function init() {
+  document.getElementById('cfg-url').value = URL_SCRIPT;
+  if (URL_SCRIPT) { document.getElementById('config-bar').style.display = 'none'; carregarTudo(); }
+  const h = new Date();
+  document.getElementById('inp-dt-fim').value = fdi(h);
+  document.getElementById('inp-dt-inicio').value = fdi(h);
+  document.getElementById('sel-tipo').addEventListener('change', ajustarDatas);
+  atualizarDateDisplay();
+})();
+
+function fdi(d){return d.getFullYear()+'-'+S(d.getMonth()+1)+'-'+S(d.getDate())}
+function S(n){return String(n).padStart(2,'0')}
+function fdb(s){if(!s)return'';const p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0]}
+function fdbD(d){return S(d.getDate())+'/'+S(d.getMonth()+1)+'/'+d.getFullYear()}
+function ds(d){return['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'][d.getDay()]}
+
+function ajustarDatas(){const t=document.getElementById('sel-tipo').value,h=new Date();let i=new Date(h);if(t==='semanal')i.setDate(i.getDate()-6);else if(t==='mensal')i.setDate(1);document.getElementById('inp-dt-inicio').value=fdi(i);document.getElementById('inp-dt-fim').value=fdi(h)}
+function salvarURL(){URL_SCRIPT=document.getElementById('cfg-url').value.trim();if(!URL_SCRIPT)return alert('Informe a URL');localStorage.setItem('ctrl_url',URL_SCRIPT);document.getElementById('config-bar').style.display='none';carregarTudo()}
+function trocarAba(a,el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['dashboard','conformidade','auditoria','notificacoes','advertencias','bancohoras','documentos','relatorios'].forEach(x=>document.getElementById('aba-'+x).classList.toggle('hidden',x!==a));if(a==='advertencias'||a==='notificacoes')popularDropdownAdv();if(a==='bancohoras')carregarBancoHoras();if(a==='documentos')popularDropdownDocs();if(a==='auditoria')popularDropdownFolga()}
+async function carregarTudo(){await Promise.all([carregarDashboard(),carregarConformidade(),carregarAuditoria(),carregarMotoristas()])}
+
+// ================================================================
+// DASHBOARD
+// ================================================================
+async function carregarDashboard(){
+  // Popular dropdown de empresas (1x)
+  const selEmp=document.getElementById('db-empresa');
+  if(selEmp.options.length<=1){
+    try{
+      const re=await fetch(`${URL_SCRIPT}?action=listar_empresas`);
+      const de=await re.json();
+      if(de.status==='ok'){
+        de.empresas.forEach(e=>{selEmp.innerHTML+=`<option value="${e.codigo}">${e.razaoSocial}</option>`});
+      }
+    }catch(e){}
+  }
+  const empresaFiltro=selEmp.value;
+  try{
+    const r=await fetch(`${URL_SCRIPT}?action=dashboard${empresaFiltro?'&empresa='+empresaFiltro:''}`);
+    const d=await r.json();
+    if(d.status!=='ok')return;
+    const ind=d.indicadores;
+
+    document.getElementById('db-ativos').textContent=ind.motoristasAtivos;
+    document.getElementById('db-jornadas').textContent=ind.totalJornadas;
+    document.getElementById('db-horas').textContent=fh(ind.totalHoras);
+    document.getElementById('db-extras').textContent=fh(ind.totalExtras);
+    document.getElementById('db-conformidade').textContent=ind.taxaConformidade+'%';
+
+    // Pizza de conformidade
+    const total=d.proporcaoJornadas.regulares+d.proporcaoJornadas.comExtra+d.proporcaoJornadas.irregulares;
+    const pizza=document.getElementById('grafico-pizza');
+    if(total>0){
+      const pR=Math.round(d.proporcaoJornadas.regulares/total*100);
+      const pE=Math.round(d.proporcaoJornadas.comExtra/total*100);
+      const pI=100-pR-pE;
+      const angR=pR*3.6,angE=pE*3.6;
+      pizza.innerHTML=`
+        <div style="display:flex;align-items:center;gap:24px">
+          <div style="width:120px;height:120px;border-radius:50%;background:conic-gradient(#16A34A ${angR}deg,#F59E0B ${angR}deg ${angR+angE}deg,#DC2626 ${angR+angE}deg);flex-shrink:0"></div>
+          <div style="font-size:13px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><div style="width:12px;height:12px;border-radius:2px;background:#16A34A"></div>Regular: <strong>${pR}%</strong> (${d.proporcaoJornadas.regulares})</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><div style="width:12px;height:12px;border-radius:2px;background:#F59E0B"></div>Com Extra: <strong>${pE}%</strong> (${d.proporcaoJornadas.comExtra})</div>
+            <div style="display:flex;align-items:center;gap:8px"><div style="width:12px;height:12px;border-radius:2px;background:#DC2626"></div>Irregular: <strong>${pI}%</strong> (${d.proporcaoJornadas.irregulares})</div>
+          </div>
+        </div>`;
+    }else{pizza.innerHTML='<p style="color:var(--text-dim);text-align:center;padding:20px">Sem dados no mês</p>'}
+
+    // Barras por dia da semana
+    const dias=document.getElementById('grafico-dias');
+    const maxH=Math.max(...d.distribuicaoDias.map(x=>x.horasMedia),1);
+    dias.innerHTML=`<div style="display:flex;align-items:flex-end;gap:8px;height:140px">
+      ${d.distribuicaoDias.map(x=>{
+        const h=Math.round(x.horasMedia/maxH*110);
+        const cor=x.horasMedia>10?'#DC2626':x.horasMedia>8?'#F59E0B':'#2563EB';
+        return `<div style="flex:1;text-align:center"><div style="height:${h}px;background:${cor};border-radius:4px 4px 0 0;margin:0 2px;min-height:4px"></div><div style="font-size:11px;font-weight:600;margin-top:4px">${fh(x.horasMedia)}</div><div style="font-size:10px;color:var(--text-dim)">${x.dia}</div></div>`;
+      }).join('')}
+    </div>`;
+
+    // Ranking horas extras
+    const ranking=document.getElementById('grafico-ranking');
+    if(d.rankingExtras.length>0){
+      const maxE=d.rankingExtras[0].extras||1;
+      ranking.innerHTML=d.rankingExtras.map((m,i)=>{
+        const w=Math.round(m.extras/maxE*100);
+        return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;${i>0?'border-top:1px solid var(--border)':''}">
+          <div style="width:24px;text-align:right;font-weight:700;color:var(--text-dim);font-size:12px">${i+1}.</div>
+          <div style="width:180px;font-size:13px;font-weight:600">${m.nome}</div>
+          <div style="flex:1;display:flex;align-items:center;gap:8px">
+            <div style="flex:1;background:var(--surface-2);border-radius:4px;height:18px;overflow:hidden"><div style="width:${w}%;height:100%;background:${m.extras>16?'#DC2626':'#F59E0B'};border-radius:4px"></div></div>
+            <div style="width:50px;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:${m.extras>16?'var(--red)':'var(--amber)'}">${fh(m.extras)}</div>
+          </div>
+          <div style="width:60px;text-align:center;font-size:11px;color:var(--text-dim)">${m.dias} dias</div>
+        </div>`;
+      }).join('');
+    }else{ranking.innerHTML='<p style="color:var(--text-dim);text-align:center;padding:20px">Sem dados</p>'}
+
+  }catch(e){console.error('Dashboard:',e)}
+}
+
+async function gerarRelatorioExecutivo(){
+  const btn=document.getElementById('btn-exec');
+  const st=document.getElementById('exec-status');
+  const empresaFiltro=document.getElementById('db-empresa').value;
+  btn.disabled=true;btn.textContent='⏳ Gerando...';
+  st.textContent='Gerando PDF executivo...';st.style.color='var(--accent)';
+  try{
+    const r=await fetch(`${URL_SCRIPT}?action=relatorio_executivo${empresaFiltro?'&empresa='+empresaFiltro:''}`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    st.innerHTML=`✅ <a href="${d.arquivo.url}" target="_blank" style="color:var(--accent);font-weight:600">Abrir PDF</a> — ${d.arquivo.pasta}`;
+    st.style.color='var(--green)';
+  }catch(e){st.textContent='❌ '+e.message;st.style.color='var(--red)'}
+  btn.disabled=false;btn.textContent='📄 Gerar PDF Executivo';
+}
+
+// ================================================================
+// REGISTRO DE FOLGA/FERIADO
+// ================================================================
+async function registrarFolga(){
+  const token=document.getElementById('folga-motorista').value;
+  const data=document.getElementById('folga-data').value;
+  const tipo=document.getElementById('folga-tipo').value;
+  const st=document.getElementById('folga-status');
+
+  if(!token)return alert('Selecione o motorista');
+  if(!data)return alert('Informe a data');
+
+  const p=data.split('-');
+  const dataBR=p[2]+'/'+p[1]+'/'+p[0];
+
+  if(!confirm(`Registrar "${tipo}" para ${dataBR}?`))return;
+
+  const btn=document.getElementById('btn-folga');
+  btn.disabled=true;btn.textContent='⏳ Registrando...';
+
+  try{
+    const params=new URLSearchParams({
+      action:'registrar_folga',
+      token,
+      data_folga:dataBR,
+      tipo_folga:encodeURIComponent(tipo)
+    });
+    const r=await fetch(`${URL_SCRIPT}?${params}`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    st.innerHTML=`✅ ${d.message}`;
+    st.style.color='var(--green)';
+  }catch(e){
+    st.textContent='❌ '+e.message;st.style.color='var(--red)';
+  }
+  btn.disabled=false;btn.textContent='📅 Registrar';
+}
+
+// Popular dropdown de folga quando auditoria carrega
+function popularDropdownFolga(){
+  const s=document.getElementById('folga-motorista');
+  if(s.options.length<=1 && MOTORISTAS.length>0){
+    s.innerHTML='<option value="">Selecione...</option>';
+    MOTORISTAS.forEach(m=>{s.innerHTML+=`<option value="${m.token}">${m.nome} — ${m.placa||''}</option>`});
+  }
+}
+
+// ================================================================
+// CONFORMIDADE
+// ================================================================
+async function carregarConformidade(){
+  ['m1-content','m2-content','m3-content','m4-content'].forEach(id=>{document.getElementById(id).innerHTML='<div class="loading"><div class="spinner"></div> Carregando...</div>'});
+  try{
+    const [r1,r2]=await Promise.all([
+      fetch(`${URL_SCRIPT}?action=painel_conformidade`),
+      fetch(`${URL_SCRIPT}?action=painel_vencimentos`)
+    ]);
+    const d=await r1.json();
+    const dv=await r2.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    const m1=d.monitor1_interjornada, m2=d.monitor2_folga, m3=d.monitor3_intrajornada;
+
+    document.getElementById('cf-interjornada').textContent=m1.total;
+    document.getElementById('cf-folga').textContent=m2.total;
+    document.getElementById('cf-intrajornada').textContent=m3.total;
+
+    const totalProblemas=m1.total+m2.total+m3.total;
+    document.getElementById('cf-total-ok').textContent=totalProblemas===0?'✓':'—';
+
+    // Vencimentos
+    if(dv.status==='ok'){
+      const totalVenc=dv.resumo.vencidos+dv.resumo.urgentes+dv.resumo.atencao;
+      document.getElementById('cf-vencimentos').textContent=totalVenc;
+      renderVencimentos(dv);
+    }
+
+    const badge=document.getElementById('badge-conf');
+    if(totalProblemas>0){badge.textContent=totalProblemas;badge.classList.remove('hidden')}else{badge.classList.add('hidden')}
+
+    // M1
+    const mc1=document.getElementById('m1-count');
+    mc1.textContent=m1.total;mc1.className='monitor-count '+(m1.total>0?'alert':'zero');
+    if(m1.total===0){document.getElementById('m1-content').innerHTML='<div class="empty-state"><div class="check">✅</div>Nenhuma violação de interjornada nos últimos 7 dias</div>'}
+    else{
+      let h='<div class="table-wrap"><table><thead><tr><th>Motorista</th><th>Placa</th><th>Fim Jornada</th><th>Início Seguinte</th><th>Intervalo</th><th>Déficit</th><th>Gravidade</th><th></th></tr></thead><tbody>';
+      m1.registros.forEach(r=>{
+        const gc=r.gravidade==='GRAVE'?'badge-red':r.gravidade==='MODERADA'?'badge-amber':'badge-green';
+        h+=`<tr><td><strong>${r.nome}</strong></td><td>${r.placa||'—'}</td><td style="font-family:'JetBrains Mono',monospace;font-size:12px">${r.fimJornada}</td><td style="font-family:'JetBrains Mono',monospace;font-size:12px">${r.inicioJornada}</td><td><span class="badge-status badge-red">${r.intervaloHoras}h</span></td><td style="color:var(--red);font-weight:700">-${r.deficitHoras}h</td><td><span class="badge-status ${gc}">${r.gravidade}</span></td><td><button class="btn sm red-outline" onclick="alertar('INTERJORNADA &lt; 11h','${r.nome}','Intervalo de apenas ${r.intervaloHoras}h entre jornadas (mínimo 11h). Fim: ${r.fimJornada}, Início: ${r.inicioJornada}. Art. 235-C §3º CLT.')">⚠️ Alertar</button></td></tr>`;
+      });
+      h+='</tbody></table></div>';
+      document.getElementById('m1-content').innerHTML=h;
+    }
+
+    // M2
+    const mc2=document.getElementById('m2-count');
+    mc2.textContent=m2.total;mc2.className='monitor-count '+(m2.total>0?'alert':'zero');
+    if(m2.total===0){document.getElementById('m2-content').innerHTML='<div class="empty-state"><div class="check">✅</div>Todos os motoristas com folga semanal em dia</div>'}
+    else{
+      let h='<div class="table-wrap"><table><thead><tr><th>Motorista</th><th>Placa</th><th>Dias Consecutivos</th><th>Última Folga</th><th>Status</th><th>Ação Necessária</th><th></th></tr></thead><tbody>';
+      m2.registros.forEach(r=>{
+        const sc=r.statusFolga==='INFRAÇÃO'?'badge-red':'badge-amber';
+        h+=`<tr><td><strong>${r.nome}</strong></td><td>${r.placa||'—'}</td><td style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;text-align:center;color:${r.diasConsecutivos>=7?'var(--red)':'var(--amber)'}">${r.diasConsecutivos}</td><td>${r.ultimaFolga}</td><td><span class="badge-status ${sc}">${r.statusFolga}</span></td><td style="font-size:12px">${r.mensagem}</td><td><button class="btn sm red-outline" onclick="alertar('FOLGA SEMANAL','${r.nome}','${r.mensagem}. Última folga: ${r.ultimaFolga}. Art. 235-C §3º c/c Art. 67 CLT.')">⚠️ Alertar</button></td></tr>`;
+      });
+      h+='</tbody></table></div>';
+      document.getElementById('m2-content').innerHTML=h;
+    }
+
+    // M3
+    const mc3=document.getElementById('m3-count');
+    mc3.textContent=m3.total;mc3.className='monitor-count '+(m3.total>0?'alert':'zero');
+    if(m3.total===0){document.getElementById('m3-content').innerHTML='<div class="empty-state"><div class="check">✅</div>Todos os motoristas registraram intervalo adequado ontem</div>'}
+    else{
+      let h='<div class="table-wrap"><table><thead><tr><th>Motorista</th><th>Placa</th><th>Jornada Ontem</th><th>Intervalo Registrado</th><th>Refeição</th><th>Problema</th><th></th></tr></thead><tbody>';
+      m3.registros.forEach(r=>{
+        h+=`<tr><td><strong>${r.nome}</strong></td><td>${r.placa||'—'}</td><td style="font-family:'JetBrains Mono',monospace;font-size:12px">${r.inicioJornada} → ${r.fimJornada} (${r.horasTrabalhadas}h)</td><td style="text-align:center"><span class="badge-status badge-red">${r.totalIntervalosMin}min</span></td><td style="text-align:center;color:${r.teveRefeicao?'var(--green)':'var(--red)'}">${r.teveRefeicao?'Sim':'Não'}</td><td style="font-size:12px">${r.motivoIntervalo}</td><td><button class="btn sm red-outline" onclick="alertar('INTRAJORNADA','${r.nome}','${r.motivoIntervalo}. Jornada: ${r.inicioJornada}-${r.fimJornada} (${r.horasTrabalhadas}h). Art. 71 CLT.')">⚠️ Alertar</button></td></tr>`;
+      });
+      h+='</tbody></table></div>';
+      document.getElementById('m3-content').innerHTML=h;
+    }
+  }catch(err){
+    ['m1-content','m2-content','m3-content','m4-content'].forEach(id=>{document.getElementById(id).innerHTML=`<p style="color:var(--red);padding:16px">Erro: ${err.message}</p>`});
+  }
+}
+
+function renderVencimentos(dv){
+  const mc4=document.getElementById('m4-count');
+  const total=dv.resumo.vencidos+dv.resumo.urgentes+dv.resumo.atencao;
+  mc4.textContent=total;mc4.className='monitor-count '+(total>0?'alert':'zero');
+
+  const lista=dv.vencimentos.filter(v=>v.temAlerta||v.cnh.nivel!=='VERDE'||v.periodico.nivel!=='VERDE'||v.toxico.nivel!=='VERDE');
+
+  if(lista.length===0){
+    document.getElementById('m4-content').innerHTML='<div class="empty-state"><div class="check">✅</div>Todos os documentos em dia</div>';
+    return;
+  }
+
+  function bc(nivel){return nivel==='VERMELHO'?'badge-red':nivel==='LARANJA'?'badge-amber':nivel==='AMARELO'?'badge-cyan':'badge-green'}
+
+  let h='<div class="table-wrap"><table><thead><tr><th>Motorista</th><th>Placa</th><th>CNH</th><th>Validade CNH</th><th>Periódico</th><th>Venc. Periódico</th><th>Toxicológico</th><th>Venc. Tóxico</th><th></th></tr></thead><tbody>';
+
+  lista.forEach(v=>{
+    const cnhBadge=v.cnh.nivel==='VERDE'?`<span class="badge-status badge-green">OK</span>`:`<span class="badge-status ${bc(v.cnh.nivel)}">${v.cnh.status}</span>`;
+    const perBadge=v.periodico.nivel==='VERDE'?`<span class="badge-status badge-green">OK</span>`:`<span class="badge-status ${bc(v.periodico.nivel)}">${v.periodico.status}</span>`;
+    const toxBadge=v.toxico.nivel==='VERDE'?`<span class="badge-status badge-green">OK</span>`:`<span class="badge-status ${bc(v.toxico.nivel)}">${v.toxico.status}</span>`;
+
+    h+=`<tr>
+      <td><strong>${v.nome}</strong><br><span style="font-size:11px;color:var(--text-dim)">${v.token}</span></td>
+      <td>${v.placa||'—'}</td>
+      <td>${cnhBadge}</td>
+      <td style="font-size:12px">${v.cnh.validade}</td>
+      <td>${perBadge}</td>
+      <td style="font-size:12px">${v.periodico.vencimento}</td>
+      <td>${toxBadge}</td>
+      <td style="font-size:12px">${v.toxico.vencimento}</td>
+      <td><button class="btn sm red-outline" onclick="alertar('VENCIMENTO','${v.nome}','${v.cnh.nivel!=='VERDE'?'CNH: '+v.cnh.status+'. ':''}${v.periodico.nivel!=='VERDE'?'Periódico: '+v.periodico.status+'. ':''}${v.toxico.nivel!=='VERDE'?'Toxicológico: '+v.toxico.status+'. ':''}Providenciar renovação imediata.')">⚠️</button></td>
+    </tr>`;
+  });
+
+  h+='</tbody></table></div>';
+  document.getElementById('m4-content').innerHTML=h;
+}
+
+function alertar(tipo,nome,detalhe){
+  const texto=`⚠️ ALERTA — ${tipo}\n\nMotorista: ${nome}\n${detalhe}\n\nData: ${new Date().toLocaleString('pt-BR')}\n\nAção recomendada: avaliar remanejamento ou folga imediata.`;
+  navigator.clipboard.writeText(texto).then(()=>alert('Alerta copiado! Cole no WhatsApp.')).catch(()=>{const t=document.createElement('textarea');t.value=texto;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);alert('Copiado!')});
+}
+
+// ================================================================
+// AUDITORIA DIÁRIA
+// ================================================================
+function atualizarDateDisplay(){document.getElementById('audit-date-display').textContent=ds(AUDIT_DATE)+', '+fdbD(AUDIT_DATE);document.getElementById('audit-date-picker').value=fdi(AUDIT_DATE)}
+function mudarDia(d){AUDIT_DATE.setDate(AUDIT_DATE.getDate()+d);atualizarDateDisplay();carregarAuditoria()}
+function irParaData(){const v=document.getElementById('audit-date-picker').value;if(!v)return;const p=v.split('-');AUDIT_DATE=new Date(+p[0],+p[1]-1,+p[2]);atualizarDateDisplay();carregarAuditoria()}
+
+async function carregarAuditoria(){
+  const tbody=document.getElementById('tabela-auditoria');
+  tbody.innerHTML='<tr><td colspan="11" class="loading"><div class="spinner"></div></td></tr>';
+  try{
+    const r=await fetch(`${URL_SCRIPT}?action=auditoria_diaria&data=${encodeURIComponent(fdbD(AUDIT_DATE))}`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    AUDITORIA=d;
+    document.getElementById('au-trabalharam').textContent=d.totalMotoristasTrabalharam;
+    document.getElementById('au-extras').textContent=fh(d.resumo.horasExtrasTotal);
+    document.getElementById('au-irregulares').textContent=d.resumo.jornadasIrregulares;
+    document.getElementById('au-sem-intervalo').textContent=d.resumo.semIntervaloAdequado;
+    document.getElementById('au-interjornada').textContent=d.resumo.interjornadaInfracoes;
+    document.getElementById('au-regulares').textContent=d.resumo.verdes;
+    renderAuditoria(d.auditoria);
+  }catch(err){tbody.innerHTML=`<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--red)">Erro: ${err.message}</td></tr>`}
+}
+
+function renderAuditoria(lista){
+  const tbody=document.getElementById('tabela-auditoria');
+  if(!lista.length){tbody.innerHTML='<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--text-dim)">Nenhum motorista trabalhou neste dia</td></tr>';return}
+  let h='';
+  lista.forEach((m,i)=>{
+    let jb='';
+    if(m.statusJornada==='IRREGULAR')jb='<span class="badge-status badge-red">IRREGULAR &gt;10h</span>';
+    else if(m.statusJornada==='EXTRA')jb='<span class="badge-status badge-amber">COM EXTRA</span>';
+    else jb='<span class="badge-status badge-green">REGULAR</span>';
+    let iv=m.totalIntervalosMin>0?(m.totalIntervalosMin+'min'+(!m.intervaloOK?' ⚠️':'')):m.horasTrabalhadas>4?'<span style="color:var(--red)">Nenhum ⚠️</span>':'—';
+    let ib='';
+    if(m.interjornadaStatus==='INFRAÇÃO')ib=`<span class="badge-status badge-red">${fh(m.interjornadaHoras)}</span>`;
+    else if(m.interjornadaStatus==='ATENÇÃO')ib=`<span class="badge-status badge-amber">${fh(m.interjornadaHoras)}</span>`;
+    else ib=`<span class="badge-status badge-green">${fh(m.interjornadaHoras)}</span>`;
+
+    h+=`<tr id="row-${i}"><td><button class="expand-btn" onclick="toggleD(${i})">▶</button></td><td><strong>${m.nome}</strong><br><span style="font-size:11px;color:var(--text-dim)">${m.token}</span></td><td>${m.placa||'—'}${m.tipoVeiculo?'<br><span class="badge-status '+(m.tipoVeiculo.includes('9')?'badge-amber':'badge-green')+'" style="font-size:10px;margin-top:2px">'+m.tipoVeiculo+'</span>':''}</td><td style="font-family:'JetBrains Mono',monospace">${m.inicioJornada||'—'}</td><td style="font-family:'JetBrains Mono',monospace">${m.fimJornada||'—'}</td><td style="font-family:'JetBrains Mono',monospace;font-weight:600">${fh(m.horasTrabalhadas)}</td><td style="font-family:'JetBrains Mono',monospace;${m.horasExtras>0?'color:var(--amber);font-weight:700':''}">${m.horasExtras>0?fh(m.horasExtras):'—'}</td><td>${iv}</td><td>${ib}</td><td>${jb}</td><td><button class="btn sm" onclick="alertar('JORNADA','${m.nome}','Horas: ${fh(m.horasTrabalhadas)}, Extra: ${fh(m.horasExtras)}, Intervalo: ${m.totalIntervalosMin}min, Interjornada: ${fh(m.interjornadaHoras)}')">⚠️</button></td></tr>`;
+
+    h+=`<tr class="detail-row hidden" id="detail-${i}"><td colspan="11"><div class="detail-content"><div class="detail-block"><h5>Intervalos Intrajornada</h5>`;
+    if(m.intervalos.length>0){
+      h+='<ul class="interval-list">';
+      m.intervalos.forEach(iv=>{h+=`<li><span class="interval-dot ${iv.tipo==='Parada Refeição'?'refeicao':'descanso'}"></span><span style="font-weight:600">${iv.tipo==='Parada Refeição'?'Refeição':'Descanso'}</span><span style="color:var(--text-dim)">${iv.inicio}→${iv.fim}</span><span style="font-family:'JetBrains Mono',monospace;font-weight:600">${iv.duracaoMin}min</span></li>`});
+      h+=`</ul><div class="detail-item" style="margin-top:8px;border-top:1px solid var(--border);padding-top:8px"><span class="label">Total:</span><span class="val">${m.totalIntervalosMin}min</span></div>`;
+      if(!m.intervaloOK)h+=`<div style="margin-top:8px;padding:8px;background:var(--red-bg);color:var(--red);border-radius:8px;font-size:12px;font-weight:600">⚠️ ${m.motivoIntervalo}</div>`;
+    }else{h+=`<p style="color:var(--text-dim)">Nenhum intervalo${m.horasTrabalhadas>4?' — <strong style="color:var(--red)">ATENÇÃO</strong>':''}</p>`}
+    h+=`</div><div class="detail-block"><h5>Cronologia</h5>`;
+    m.registros.forEach(r=>{h+=`<div class="detail-item"><span class="label">${r.hora}</span><span class="val" style="font-family:'DM Sans',sans-serif;font-weight:500">${r.evento}</span></div>`});
+    h+=`<div style="margin-top:12px;padding-top:8px;border-top:1px solid var(--border)"><h5>Interjornada</h5><div class="detail-item"><span class="label">Fim:</span><span class="val">${m.fimJornada||'—'}</span></div><div class="detail-item"><span class="label">Próx. início:</span><span class="val">${m.proximoInicio}</span></div><div class="detail-item"><span class="label">Intervalo:</span><span class="val" style="color:${m.interjornadaStatus==='INFRAÇÃO'?'var(--red)':m.interjornadaStatus==='ATENÇÃO'?'var(--amber)':'var(--green)'}">${fh(m.interjornadaHoras)} (${m.interjornadaStatus})</span></div></div></div></div></td></tr>`;
+  });
+  tbody.innerHTML=h;
+}
+
+function toggleD(i){const d=document.getElementById('detail-'+i),b=document.querySelector('#row-'+i+' .expand-btn');if(d.classList.contains('hidden')){d.classList.remove('hidden');b.textContent='▼'}else{d.classList.add('hidden');b.textContent='▶'}}
+
+// ================================================================
+// MOTORISTAS
+// ================================================================
+async function carregarMotoristas(){
+  try{
+    const r=await fetch(`${URL_SCRIPT}?action=listar_motoristas`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    MOTORISTAS=d.motoristas||[];
+    const s=document.getElementById('sel-motorista');
+    s.innerHTML='<option value="">Selecione...</option>';
+    MOTORISTAS.forEach(m=>{s.innerHTML+=`<option value="${m.token}">${m.nome} — ${m.placa||'Sem placa'}</option>`});
+    
+    // Processar afastados
+    const afastados=d.afastados||[];
+    document.getElementById('cf-afastados').textContent=afastados.length;
+    const cardAf=document.getElementById('card-afastados');
+    const m5=document.getElementById('m5-content');
+    document.getElementById('m5-count').textContent=afastados.length;
+    
+    if(afastados.length>0){
+      cardAf.style.display='';
+      m5.innerHTML='<div class="table-wrap"><table><thead><tr><th>Motorista</th><th>Token</th><th>Placa</th><th>Status</th><th>Empresa</th></tr></thead><tbody>'+
+        afastados.map(a=>`<tr>
+          <td><strong>${a.nome}</strong></td>
+          <td>${a.token}</td>
+          <td>${a.placa||'—'}</td>
+          <td><span class="badge-status badge-amber">${a.status}</span></td>
+          <td style="font-size:11px">${a.codigoEmpresa||'—'}</td>
+        </tr>`).join('')+'</tbody></table></div>';
+    }else{
+      cardAf.style.display='none';
+    }
+  }catch(e){console.error(e)}
+}
+
+// ================================================================
+// RELATÓRIOS
+// ================================================================
+async function gerarRelatorio(){
+  const token=document.getElementById('sel-motorista').value,tipo=document.getElementById('sel-tipo').value,di=document.getElementById('inp-dt-inicio').value,df=document.getElementById('inp-dt-fim').value;
+  if(!token)return alert('Selecione um motorista');if(!di||!df)return alert('Informe o período');
+  const c=document.getElementById('report-container'),p=document.getElementById('report-preview');
+  c.classList.remove('hidden');p.innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  try{
+    const r=await fetch(`${URL_SCRIPT}?${new URLSearchParams({action:'relatorio',token,tipo,data_inicio:fdb(di),data_fim:fdb(df)})}`);
+    const d=await r.json();if(d.status!=='ok')throw new Error(d.message);RELATORIO_ATUAL=d;renderRelatorio(d);
+  }catch(e){p.innerHTML=`<p style="color:var(--red)">Erro: ${e.message}</p>`}
+}
+
+function renderRelatorio(d){
+  const p=document.getElementById('report-preview');
+  if(d.htmlRelatorio){
+    p.innerHTML=`<iframe id="report-iframe" style="width:100%;height:700px;border:1px solid var(--border);border-radius:10px" srcdoc="${d.htmlRelatorio.replace(/"/g,'&quot;')}"></iframe>`;
+  }else{
+    p.innerHTML='<p style="color:var(--text-dim);padding:20px;text-align:center">Nenhum dado disponível</p>';
+  }
+}
+
+function imprimirRelatorio(){
+  const iframe=document.getElementById('report-iframe');
+  if(!iframe)return alert('Gere um relatório primeiro');
+  iframe.contentWindow.print();
+}
+
+async function salvarNoDrive(){
+  if(!RELATORIO_ATUAL)return alert('Gere um relatório primeiro');
+  const b=document.getElementById('btn-drive'),s=document.getElementById('drive-status');
+  b.disabled=true;b.textContent='⏳ Salvando...';s.textContent='Criando pasta e PDF...';s.style.color='var(--accent)';
+  try{
+    const r=await fetch(`${URL_SCRIPT}?${new URLSearchParams({action:'salvar_relatorio_drive',token:document.getElementById('sel-motorista').value,tipo:document.getElementById('sel-tipo').value,data_inicio:fdb(document.getElementById('inp-dt-inicio').value),data_fim:fdb(document.getElementById('inp-dt-fim').value)})}`);
+    const d=await r.json();
+    if(d.status==='ok'){s.innerHTML=`✅ <a href="${d.arquivo.url}" target="_blank" style="color:var(--accent);font-weight:600">${d.arquivo.nome}</a> → <a href="${d.arquivo.urlPasta}" target="_blank" style="color:var(--accent)">Pasta</a>`;s.style.color='var(--green)'}
+    else throw new Error(d.message);
+  }catch(e){s.textContent='❌ '+e.message;s.style.color='var(--red)'}
+  b.disabled=false;b.textContent='📁 Salvar no Drive';
+}
+
+function copiarRelatorio(){
+  if(!RELATORIO_ATUAL)return;const m=RELATORIO_ATUAL.motorista,t=RELATORIO_ATUAL.totais,tl={diario:'DIÁRIO',semanal:'SEMANAL',mensal:'MENSAL'}[RELATORIO_ATUAL.tipo];
+  let x=`RELATÓRIO ${tl}\nMatos e Marques Transportes\nPeríodo: ${RELATORIO_ATUAL.periodo.inicio} a ${RELATORIO_ATUAL.periodo.fim}\n\n${m.nome} | CPF: ${m.cpf} | CNH: ${m.cnh} | Placa: ${m.placa}\n\nREGISTROS:\n`;
+  RELATORIO_ATUAL.registros.forEach(r=>{x+=`${r.data} ${r.hora} — ${r.evento}\n`});
+  x+=`\nTOTAIS: ${fh(t.horasTrabalhadas)} trabalhadas, ${fh(t.horasExtras)} extras, ${t.interjornadasMenor11h} interjornada <11h\n`;
+  navigator.clipboard.writeText(x).then(()=>alert('Copiado!')).catch(()=>alert('Erro'));
+}
+
+// ================================================================
+// DOCUMENTOS
+// ================================================================
+function popularDropdownDocs(){
+  const s=document.getElementById('doc-motorista');
+  if(s.options.length<=1 && MOTORISTAS.length>0){
+    s.innerHTML='<option value="">Selecione o motorista...</option>';
+    MOTORISTAS.forEach(m=>{s.innerHTML+=`<option value="${m.token}">${m.nome} — ${m.token} — ${m.placa||'Sem placa'}</option>`});
+  }
+}
+
+async function gerarDoc(tipo){
+  const token=document.getElementById('doc-motorista').value;
+  if(!token)return alert('Selecione o motorista primeiro');
+
+  const nomes={adesao:'Termo de Adesão',treinamento:'Termo de Treinamento',responsabilidade:'Termo de Responsabilidade'};
+  const st=document.getElementById('doc-status');
+  st.textContent=`⏳ Gerando ${nomes[tipo]}...`;st.style.color='var(--accent)';
+
+  try{
+    const r=await fetch(`${URL_SCRIPT}?action=gerar_documento&token=${token}&tipo_doc=${tipo}`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+
+    st.innerHTML=`✅ ${nomes[tipo]} gerado! <a href="${d.documento.url}" target="_blank" style="color:var(--accent);font-weight:600">📄 Abrir PDF</a> — Salvo em: ${d.documento.pasta}`;
+    st.style.color='var(--green)';
+
+    // Mostrar preview
+    const preview=document.getElementById('doc-preview');
+    preview.classList.remove('hidden');
+    const iframe=document.getElementById('doc-iframe');
+    iframe.srcdoc=d.documento.html;
+  }catch(e){
+    st.textContent='❌ '+e.message;st.style.color='var(--red)';
+  }
+}
+
+// ================================================================
+// BANCO DE HORAS
+// ================================================================
+async function carregarBancoHoras(){
+  const tbody=document.getElementById('tabela-bh');
+  tbody.innerHTML='<tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr>';
+  // Popular dropdown
+  const sel=document.getElementById('bh-motorista');
+  if(sel.options.length<=1 && MOTORISTAS.length>0){
+    sel.innerHTML='<option value="">Selecione...</option>';
+    MOTORISTAS.forEach(m=>{sel.innerHTML+=`<option value="${m.token}">${m.nome} — ${m.placa||''}</option>`});
+  }
+  // Auto-preencher horas ao mudar tipo
+  document.getElementById('bh-tipo').onchange=function(){
+    const v=this.value;
+    if(v.includes('1 dia'))document.getElementById('bh-horas').value='8';
+    else if(v.includes('2 dias'))document.getElementById('bh-horas').value='16';
+    else if(v.includes('3 dias'))document.getElementById('bh-horas').value='24';
+    else if(v.includes('Meio'))document.getElementById('bh-horas').value='4';
+    else document.getElementById('bh-horas').value='';
+  };
+  try{
+    const r=await fetch(`${URL_SCRIPT}?action=banco_horas`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+
+    document.getElementById('bh-total-extras').textContent=fh(d.resumoFrota.totalExtras);
+    document.getElementById('bh-total-comp').textContent=fh(d.resumoFrota.totalCompensado);
+    document.getElementById('bh-total-saldo').textContent=fh(d.resumoFrota.totalSaldo);
+    document.getElementById('bh-mot-saldo').textContent=d.resumoFrota.totalMotoristasComSaldo;
+
+    if(!d.motoristas.length){
+      tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-dim)">Nenhum dado de horas extras encontrado. Os dados são gerados pelo Resumo Diário ao encerrar jornadas.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML=d.motoristas.map(m=>{
+      const sc=m.saldo>16?'color:var(--red);font-weight:700':m.saldo>8?'color:var(--amber);font-weight:700':'color:var(--green)';
+      return `<tr>
+        <td><strong>${m.nome}</strong><br><span style="font-size:11px;color:var(--text-dim)">${m.token}</span></td>
+        <td>${m.placa||'—'}</td>
+        <td style="font-family:'JetBrains Mono',monospace;text-align:center">${fh(m.extrasAcumuladas)}</td>
+        <td style="font-family:'JetBrains Mono',monospace;text-align:center;color:var(--green)">${m.debitosCompensacao>0?'-'+fh(m.debitosCompensacao):'—'}</td>
+        <td style="font-family:'JetBrains Mono',monospace;text-align:center;font-size:16px;${sc}">${fh(m.saldo)}</td>
+        <td style="text-align:center">${m.diasEquivalentes} dia(s)</td>
+        <td><button class="btn sm" onclick="preencherComp('${m.token}','${m.nome}',${m.saldo})">📝 Compensar</button></td>
+      </tr>`;
+    }).join('');
+  }catch(e){
+    tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;color:var(--red);padding:20px">Erro: ${e.message}</td></tr>`;
+  }
+}
+
+function preencherComp(token,nome,saldo){
+  document.getElementById('bh-motorista').value=token;
+  document.getElementById('bh-ref').value='';
+  document.getElementById('bh-horas').value='8';
+  document.getElementById('bh-data').focus();
+  document.getElementById('bh-status').textContent=`Saldo atual de ${nome}: ${fh(saldo)}`;
+  document.getElementById('bh-status').style.color='var(--accent)';
+}
+
+async function registrarCompensacao(){
+  const token=document.getElementById('bh-motorista').value;
+  const data=document.getElementById('bh-data').value;
+  const tipo=document.getElementById('bh-tipo').value;
+  const horas=document.getElementById('bh-horas').value;
+  const ref=document.getElementById('bh-ref').value;
+
+  if(!token)return alert('Selecione o motorista');
+  if(!data)return alert('Informe a data da folga');
+  if(!horas||parseFloat(horas)<=0)return alert('Informe as horas a debitar');
+
+  if(!confirm(`Registrar ${horas}h de compensação? Esta ação será registrada na planilha.`))return;
+
+  const btn=document.getElementById('btn-comp');
+  const st=document.getElementById('bh-status');
+  btn.disabled=true;btn.textContent='⏳ Registrando...';
+
+  try{
+    const p=data.split('-');
+    const dataBR=p[2]+'/'+p[1]+'/'+p[0];
+    const params=new URLSearchParams({
+      action:'registrar_compensacao',
+      token,
+      tipo:encodeURIComponent(tipo),
+      horas_debito:horas,
+      data_compensacao:dataBR,
+      referencia:encodeURIComponent(ref||'Folga compensatória')
+    });
+    const r=await fetch(`${URL_SCRIPT}?${params}`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+
+    st.innerHTML=`✅ Registrado! Saldo anterior: ${fh(d.compensacao.saldoAnterior)} → Novo saldo: <strong>${fh(d.compensacao.novoSaldo)}</strong> (${d.compensacao.diasEquivalentes} dias)`;
+    st.style.color='var(--green)';
+    carregarBancoHoras();
+  }catch(e){
+    st.textContent='❌ '+e.message;st.style.color='var(--red)';
+  }
+  btn.disabled=false;btn.textContent='✅ Registrar Compensação';
+}
+
+// ================================================================
+// NOTIFICAÇÕES
+// ================================================================
+function popularDropdownNotif(){
+  if(!MOTORISTAS.length)return;
+  ['notif-motorista','notif-filtro'].forEach(id=>{
+    const s=document.getElementById(id);
+    if(!s)return;
+    const val=s.value;
+    s.innerHTML=id==='notif-filtro'?'<option value="">Todos</option>':'<option value="">Selecione...</option>';
+    MOTORISTAS.forEach(m=>{s.innerHTML+=`<option value="${m.token}">${m.nome} — ${m.placa||''}</option>`});
+    s.value=val;
+  });
+}
+
+async function emitirNotificacao(){
+  const token=document.getElementById('notif-motorista').value;
+  const tipo=document.getElementById('notif-tipo').value;
+  const desc=document.getElementById('notif-descricao').value;
+  const prazo=document.getElementById('notif-prazo').value;
+
+  if(!token)return alert('Selecione o motorista');
+  if(!tipo)return alert('Selecione o tipo de notificação');
+  if(!desc)return alert('Descreva o conteúdo da notificação');
+
+  const btn=document.getElementById('btn-notif');
+  const st=document.getElementById('notif-status');
+  btn.disabled=true;btn.textContent='⏳ Emitindo...';
+  st.textContent='Gerando notificação e salvando no Drive...';st.style.color='var(--accent)';
+
+  try{
+    const params=new URLSearchParams({
+      action:'emitir_notificacao',
+      token,
+      tipo:encodeURIComponent(tipo),
+      descricao:encodeURIComponent(desc),
+      prazo:prazo,
+      empresa:document.getElementById('notif-empresa').value
+    });
+    const r=await fetch(`${URL_SCRIPT}?${params}`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+
+    const n=d.notificacao;
+    st.textContent='';
+    document.getElementById('notif-preview').classList.remove('hidden');
+    document.getElementById('notif-result').innerHTML=`
+      <div style="font-size:13px">
+        <div><strong>Motorista:</strong> ${n.motorista}</div>
+        <div><strong>Tipo:</strong> ${n.tipo}</div>
+        <div><strong>Total de notificações:</strong> ${n.totalNotificacoes}</div>
+        <div style="margin-top:8px">
+          <a href="${n.arquivo.url}" target="_blank" style="color:var(--accent);font-weight:600">📄 Abrir PDF</a> · 
+          <a href="${n.arquivo.urlPasta}" target="_blank" style="color:var(--accent)">📁 Pasta</a>
+        </div>
+        <div style="margin-top:12px;padding:10px;background:var(--surface);border-radius:8px;font-size:12px">
+          <strong>Próximo passo:</strong> Envie o PDF pelo WhatsApp ao motorista e peça confirmação de recebimento.
+        </div>
+      </div>`;
+    document.getElementById('notif-descricao').value='';
+    document.getElementById('notif-prazo').value='';
+  }catch(e){
+    st.textContent='❌ Erro: '+e.message;st.style.color='var(--red)';
+  }
+  btn.disabled=false;btn.textContent='📨 Emitir Notificação';
+}
+
+async function carregarHistoricoNotif(){
+  const token=document.getElementById('notif-filtro').value;
+  const tbody=document.getElementById('tabela-notif');
+  tbody.innerHTML='<tr><td colspan="7" class="loading"><div class="spinner"></div></td></tr>';
+  try{
+    let url=`${URL_SCRIPT}?action=listar_notificacoes`;
+    if(token)url+=`&token=${token}`;
+    const r=await fetch(url);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    if(!d.notificacoes.length){
+      tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-dim)">Nenhuma notificação encontrada</td></tr>';
+      return;
+    }
+    tbody.innerHTML=d.notificacoes.map(n=>`<tr>
+      <td style="font-family:'JetBrains Mono',monospace;font-weight:700">${n.numero}</td>
+      <td style="font-size:12px">${n.dataEmissao}</td>
+      <td><strong>${n.nome}</strong><br><span style="font-size:11px;color:var(--text-dim)">${n.token}</span></td>
+      <td style="font-size:12px">${n.tipo}</td>
+      <td style="font-size:12px">${n.prazo||'—'}</td>
+      <td style="text-align:center">${n.anteriores}</td>
+      <td><span class="badge-status badge-cyan">${n.status}</span></td>
+    </tr>`).join('');
+  }catch(e){
+    tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;color:var(--red);padding:20px">Erro: ${e.message}</td></tr>`;
+  }
+}
+
+// ================================================================
+// ADVERTÊNCIAS
+// ================================================================
+function popularDropdownAdv(){
+  if(!MOTORISTAS.length)return;
+  ['adv-motorista','adv-filtro','notif-motorista','notif-filtro'].forEach(id=>{
+    const s=document.getElementById(id);
+    if(!s)return;
+    const val=s.value;
+    s.innerHTML=id.includes('filtro')?'<option value="">Todos</option>':'<option value="">Selecione...</option>';
+    MOTORISTAS.forEach(m=>{s.innerHTML+=`<option value="${m.token}">${m.nome} — ${m.placa||''}</option>`});
+    s.value=val;
+  });
+  carregarEmpresas();
+}
+
+async function carregarEmpresas(){
+  try{
+    const r=await fetch(`${URL_SCRIPT}?action=listar_empresas`);
+    const d=await r.json();
+    if(d.status!=='ok')return;
+    ['adv-empresa','notif-empresa'].forEach(id=>{
+      const s=document.getElementById(id);
+      if(!s)return;
+      const val=s.value;
+      s.innerHTML='<option value="">Auto (empresa do cadastro)</option>';
+      d.empresas.forEach(e=>{s.innerHTML+=`<option value="${e.codigo}">${e.razaoSocial} — ${e.cnpj}</option>`});
+      s.value=val;
+    });
+  }catch(e){console.error('Empresas:',e)}
+}
+
+async function emitirAdvertencia(){
+  const token=document.getElementById('adv-motorista').value;
+  const data=document.getElementById('adv-data').value;
+  const tipo=document.getElementById('adv-tipo').value;
+  const desc=document.getElementById('adv-descricao').value;
+  const contra=document.getElementById('adv-contraditorio').value;
+
+  if(!token)return alert('Selecione o motorista');
+  if(!data)return alert('Informe a data da infração');
+  if(!tipo)return alert('Selecione o tipo de infração');
+  if(!desc)return alert('Descreva o fato ocorrido');
+  if(!contra)return alert('Informe o contraditório (resposta do motorista)');
+
+  if(!confirm('Confirma a emissão da advertência? Esta ação será registrada na planilha e gerará um PDF.'))return;
+
+  const btn=document.getElementById('btn-emitir');
+  const st=document.getElementById('adv-status');
+  btn.disabled=true;btn.textContent='⏳ Emitindo...';
+  st.textContent='Gerando advertência e salvando no Drive...';st.style.color='var(--accent)';
+
+  try{
+    const p=data.split('-');
+    const dataBR=p[2]+'/'+p[1]+'/'+p[0];
+    const params=new URLSearchParams({
+      action:'emitir_advertencia',
+      token,
+      data_infracao:dataBR,
+      tipo_infracao:tipo,
+      descricao:encodeURIComponent(desc),
+      contraditorio:encodeURIComponent(contra),
+      empresa:document.getElementById('adv-empresa').value
+    });
+    const r=await fetch(`${URL_SCRIPT}?${params}`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+
+    const a=d.advertencia;
+    st.textContent='';
+    document.getElementById('adv-preview').classList.remove('hidden');
+    document.getElementById('adv-result').innerHTML=`
+      <div style="font-size:13px">
+        <div><strong>Motorista:</strong> ${a.motorista}</div>
+        <div><strong>Grau:</strong> ${a.grauTexto} (${a.totalAdvertencias}ª advertência)</div>
+        <div style="margin-top:8px">
+          <a href="${a.arquivo.url}" target="_blank" style="color:var(--accent);font-weight:600">📄 Abrir PDF da Advertência</a> · 
+          <a href="${a.arquivo.urlPasta}" target="_blank" style="color:var(--accent)">📁 Abrir Pasta</a>
+        </div>
+        <div style="margin-top:12px;padding:10px;background:var(--surface);border-radius:8px;font-size:12px">
+          <strong>Próximo passo:</strong> Abra o PDF, envie pelo WhatsApp ao motorista e peça para confirmar recebimento.
+          No final do mês, colha a assinatura física no documento impresso.
+        </div>
+      </div>`;
+
+    // Limpar formulário
+    document.getElementById('adv-descricao').value='';
+    document.getElementById('adv-contraditorio').value='';
+
+  }catch(e){
+    st.textContent='❌ Erro: '+e.message;st.style.color='var(--red)';
+  }
+
+  btn.disabled=false;btn.textContent='⚠️ Emitir Advertência';
+}
+
+async function carregarHistoricoAdv(){
+  const token=document.getElementById('adv-filtro').value;
+  const tbody=document.getElementById('tabela-adv');
+  tbody.innerHTML='<tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>';
+
+  try{
+    let url=`${URL_SCRIPT}?action=listar_advertencias`;
+    if(token)url+=`&token=${token}`;
+    const r=await fetch(url);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+
+    if(!d.advertencias.length){
+      tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-dim)">Nenhuma advertência encontrada</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML=d.advertencias.map(a=>{
+      const gc=a.grau.includes('5')?'badge-red':a.grau.includes('4')?'badge-red':a.grau.includes('2')?'badge-amber':'badge-cyan';
+      return `<tr>
+        <td style="font-family:'JetBrains Mono',monospace;font-weight:700">${a.numero}</td>
+        <td style="font-size:12px">${a.dataEmissao}</td>
+        <td><strong>${a.nome}</strong><br><span style="font-size:11px;color:var(--text-dim)">${a.token}</span></td>
+        <td style="font-size:12px">${a.tipoInfracao}<br><span style="color:var(--text-dim)">${a.dataInfracao}</span></td>
+        <td><span class="badge-status ${gc}">${a.grau}</span></td>
+        <td><span class="badge-status ${a.status==='Emitida'?'badge-amber':'badge-green'}">${a.status}</span></td>
+      </tr>`;
+    }).join('');
+  }catch(e){
+    tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;color:var(--red);padding:20px">Erro: ${e.message}</td></tr>`;
+  }
+}
+
+// ================================================================
+// BACKUP E ARQUIVAMENTO
+// ================================================================
+async function fazerBackupDiario(){
+  const data=document.getElementById('backup-data').value;
+  const st=document.getElementById('backup-status');
+  const btn=document.getElementById('btn-backup');
+
+  if(!data){
+    // Usar ontem como padrão
+    const ontem=new Date();ontem.setDate(ontem.getDate()-1);
+    document.getElementById('backup-data').value=fdi(ontem);
+  }
+
+  const dataVal=document.getElementById('backup-data').value;
+  const p=dataVal.split('-');
+  const dataBR=p[2]+'/'+p[1]+'/'+p[0];
+
+  btn.disabled=true;btn.textContent='⏳ Exportando...';
+  st.textContent='Criando backup no Drive...';st.style.color='var(--accent)';
+
+  try{
+    const r=await fetch(`${URL_SCRIPT}?action=backup_diario&data=${encodeURIComponent(dataBR)}`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    st.innerHTML=`✅ ${d.backup.registros} registros de ${d.backup.motoristas} motorista(s) salvos. <a href="${d.backup.url}" target="_blank" style="color:var(--accent);font-weight:600">Abrir planilha</a> — Pasta: ${d.backup.pasta}`;
+    st.style.color='var(--green)';
+  }catch(e){
+    st.textContent='❌ '+e.message;st.style.color='var(--red)';
+  }
+  btn.disabled=false;btn.textContent='📋 Backup do Dia';
+}
+
+async function fazerArquivamentoMensal(){
+  if(!confirm('ATENÇÃO: O arquivamento mensal vai exportar todos os registros do mês anterior para o Drive e APAGAR da planilha principal.\n\nO Resumo Diário, Banco de Horas, Advertências e Notificações NÃO serão afetados.\n\nDeseja continuar?'))return;
+
+  const st=document.getElementById('backup-status');
+  const btn=document.getElementById('btn-arquivar');
+
+  btn.disabled=true;btn.textContent='⏳ Arquivando...';
+  st.textContent='Arquivando mês anterior...';st.style.color='var(--accent)';
+
+  try{
+    const r=await fetch(`${URL_SCRIPT}?action=arquivar_mes`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    st.innerHTML=`✅ ${d.arquivo.registrosArquivados} registros arquivados. ${d.arquivo.registrosRestantes} restantes na planilha. <a href="${d.arquivo.url}" target="_blank" style="color:var(--accent);font-weight:600">Abrir arquivo</a> — Pasta: ${d.arquivo.pasta}`;
+    st.style.color='var(--green)';
+  }catch(e){
+    st.textContent='❌ '+e.message;st.style.color='var(--red)';
+  }
+  btn.disabled=false;btn.textContent='🗄️ Arquivar Mês Anterior';
+}
+</script>
+</body>
+</html>
