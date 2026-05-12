@@ -185,6 +185,7 @@
     <button class="tab" onclick="trocarAba('bancohoras',this)">⏱️ Banco H.</button>
     <button class="tab" onclick="trocarAba('documentos',this)">📄 Docs</button>
     <button class="tab" onclick="trocarAba('contatos',this)">📞 Contatos</button>
+    <button class="tab" onclick="trocarAba('prontuario',this)">🗂️ Prontuário</button>
     <button class="tab" onclick="trocarAba('relatorios',this)">📋 Relatórios</button>
   </div>
 
@@ -247,6 +248,8 @@
         <div style="display:flex;gap:8px">
           <button class="btn primary" onclick="abrirFormMotorista()">➕ Novo Motorista</button>
           <button class="btn" onclick="abrirImportacao()">📥 Importar Planilha</button>
+          <button class="btn" onclick="exportarCadastros()">📤 CSV</button>
+          <button class="btn" onclick="exportarCadastrosPDF()" id="btn-export-pdf">📄 Exportar PDF</button>
         </div>
       </div>
       <div class="table-wrap">
@@ -479,6 +482,10 @@
             <option value="FERIADO MUNICIPAL">Feriado Municipal</option>
             <option value="FERIADO ESTADUAL">Feriado Estadual</option>
             <option value="FOLGA — Acordo Individual">Folga — Acordo Individual</option>
+            <option value="FÉRIAS">Férias</option>
+            <option value="AFASTADO INSS">Afastado INSS</option>
+            <option value="LICENÇA MATERNIDADE">Licença Maternidade</option>
+            <option value="LICENÇA PATERNIDADE">Licença Paternidade</option>
             <option value="ATESTADO MÉDICO">Atestado Médico</option>
             <option value="FALTA JUSTIFICADA">Falta Justificada</option>
             <option value="FALTA INJUSTIFICADA">Falta Injustificada</option>
@@ -770,6 +777,22 @@
     </div>
   </div>
 
+  <!-- ===== ABA PRONTUÁRIO ===== -->
+  <div id="aba-prontuario" class="hidden">
+    <div class="card">
+      <div class="card-title">🗂️ Prontuário Completo do Motorista</div>
+      <div class="card-subtitle">Selecione o motorista para visualizar todo o histórico: jornadas, horas extras, advertências, notificações, folgas e banco de horas.</div>
+      <div class="form-row" style="margin-bottom:16px">
+        <div class="form-group" style="flex:1"><label>Motorista</label><select id="pront-motorista" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px"><option value="">Selecione...</option></select></div>
+        <div style="display:flex;align-items:end;gap:8px">
+          <button class="btn primary" onclick="carregarProntuario()">🔍 Consultar</button>
+          <button class="btn" onclick="exportarProntuarioPDF()" id="btn-pront-pdf">📄 Exportar PDF</button>
+        </div>
+      </div>
+    </div>
+    <div id="pront-resultado"></div>
+  </div>
+
   <!-- ===== ABA RELATÓRIOS ===== -->
   <div id="aba-relatorios" class="hidden">
     <div class="card">
@@ -998,7 +1021,7 @@ function ds(d){return['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Q
 
 function ajustarDatas(){const t=document.getElementById('sel-tipo').value,h=new Date();let i=new Date(h);if(t==='semanal')i.setDate(i.getDate()-6);else if(t==='mensal')i.setDate(1);document.getElementById('inp-dt-inicio').value=fdi(i);document.getElementById('inp-dt-fim').value=fdi(h)}
 function salvarURL(){URL_SCRIPT=document.getElementById('cfg-url').value.trim();if(!URL_SCRIPT)return alert('Informe a URL');localStorage.setItem('ctrl_url',URL_SCRIPT);document.getElementById('config-bar').style.display='none';carregarTudo()}
-function trocarAba(a,el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['dashboard','cadastros','conformidade','auditoria','notificacoes','advertencias','bancohoras','documentos','contatos','relatorios'].forEach(x=>document.getElementById('aba-'+x).classList.toggle('hidden',x!==a));if(a==='advertencias'||a==='notificacoes')popularDropdownAdv();if(a==='bancohoras')carregarBancoHoras();if(a==='documentos')popularDropdownDocs();if(a==='auditoria')popularDropdownFolga();if(a==='cadastros')carregarCadastros();if(a==='contatos')carregarContatos()}
+function trocarAba(a,el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['dashboard','cadastros','conformidade','auditoria','notificacoes','advertencias','bancohoras','documentos','contatos','prontuario','relatorios'].forEach(x=>document.getElementById('aba-'+x).classList.toggle('hidden',x!==a));if(a==='advertencias'||a==='notificacoes')popularDropdownAdv();if(a==='bancohoras')carregarBancoHoras();if(a==='documentos')popularDropdownDocs();if(a==='auditoria')popularDropdownFolga();if(a==='cadastros')carregarCadastros();if(a==='contatos')carregarContatos();if(a==='prontuario')popularDropdownProntuario()}
 async function carregarTudo(){await Promise.all([carregarDashboard(),carregarConformidade(),carregarAuditoria(),carregarMotoristas()])}
 
 // ================================================================
@@ -1269,6 +1292,185 @@ async function confirmarImportacao(){
 }
 
 // ================================================================
+// EXPORTAR CADASTROS
+// ================================================================
+function exportarCadastros(){
+  const rows=[['Nº','Nome','CPF','Token','Placa','Tipo Veículo','Empresa','Status','Telefone','Email','Tipo Sanguíneo','Contato Emergência','Tel Emergência']];
+  const tbody=document.getElementById('tabela-cadastro');
+  const trs=tbody.querySelectorAll('tr');
+  MOTORISTAS.forEach(m=>{
+    rows.push([m.numero||'',m.nome||'',m.cpf||'',m.token||'',m.placa||'',m.tipoVeiculo||'',m.codigoEmpresa||'',m.status||'Ativo',m.telefone||'',m.email||'',m.tipoSanguineo||'',m.contatoEmergencia||'',m.telEmergencia||'']);
+  });
+  let csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='cadastro_motoristas_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();URL.revokeObjectURL(url);
+}
+
+async function exportarProntuarioPDF(){
+  const token=document.getElementById('pront-motorista').value;
+  if(!token)return alert('Selecione um motorista primeiro');
+  const btn=document.getElementById('btn-pront-pdf');
+  btn.disabled=true;btn.textContent='⏳ Gerando PDF...';
+  try{
+    const r=await fetch(`${URL_SCRIPT}?action=prontuario_pdf&token=${token}`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    window.open(d.arquivo.url,'_blank');
+    btn.textContent='✅ PDF Gerado';
+    setTimeout(()=>{btn.textContent='📄 Exportar PDF';btn.disabled=false},3000);
+  }catch(e){
+    alert('Erro: '+e.message);
+    btn.textContent='📄 Exportar PDF';btn.disabled=false;
+  }
+}
+
+async function exportarCadastrosPDF(){
+  const btn=document.getElementById('btn-export-pdf');
+  btn.disabled=true;btn.textContent='⏳ Gerando...';
+  try{
+    const r=await fetch(`${URL_SCRIPT}?action=exportar_cadastros`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    window.open(d.arquivo.url,'_blank');
+    btn.textContent='✅ PDF Gerado';
+    setTimeout(()=>{btn.textContent='📄 Exportar PDF';btn.disabled=false},3000);
+  }catch(e){
+    alert('Erro: '+e.message);
+    btn.textContent='📄 Exportar PDF';btn.disabled=false;
+  }
+}
+
+// ================================================================
+// PRONTUÁRIO
+// ================================================================
+function popularDropdownProntuario(){
+  const s=document.getElementById('pront-motorista');
+  if(s.options.length<=1&&MOTORISTAS.length>0){
+    s.innerHTML='<option value="">Selecione...</option>';
+    MOTORISTAS.forEach(m=>{s.innerHTML+=`<option value="${m.token}">${m.nome} — ${m.token}</option>`});
+  }
+}
+
+async function carregarProntuario(){
+  const token=document.getElementById('pront-motorista').value;
+  if(!token)return alert('Selecione um motorista');
+  const div=document.getElementById('pront-resultado');
+  div.innerHTML='<div class="card"><div class="loading"><div class="spinner"></div> Carregando prontuário...</div></div>';
+
+  try{
+    const r=await fetch(`${URL_SCRIPT}?action=prontuario&token=${token}`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    const m=d.motorista,res=d.resumo;
+
+    let html='';
+
+    // DADOS PESSOAIS
+    html+=`<div class="card">
+      <div class="card-title">👤 Dados do Motorista</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;font-size:13px">
+        <div><strong>Nome:</strong> ${m.nome}</div>
+        <div><strong>CPF:</strong> ${m.cpf}</div>
+        <div><strong>CTPS:</strong> ${m.ctps}</div>
+        <div><strong>Admissão:</strong> ${m.dataAdmissao}</div>
+        <div><strong>Endereço:</strong> ${m.endereco}</div>
+        <div><strong>Token:</strong> <span style="color:var(--accent);font-weight:700">${m.token}</span></div>
+        <div><strong>Telefone:</strong> ${m.telefone} ${m.telefone!=='—'?`<a href="https://wa.me/55${m.telefone.replace(/\\D/g,'')}" target="_blank"><svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>`:''}</div>
+        <div><strong>Email:</strong> ${m.email}</div>
+        <div><strong>CNH:</strong> ${m.cnh} (${m.categoriaCNH})</div>
+        <div><strong>Placa:</strong> ${m.placa}</div>
+        <div><strong>Tipo Sanguíneo:</strong> ${m.tipoSanguineo}</div>
+        <div><strong>Emergência:</strong> ${m.contatoEmergencia} — ${m.telEmergencia}</div>
+        <div><strong>Empresa:</strong> ${d.empresa.razaoSocial}</div>
+        <div><strong>CNPJ:</strong> ${d.empresa.cnpj}</div>
+        <div><strong>Status Atual:</strong> <span class="badge-status ${m.status==='Ativo'?'badge-green':m.status==='Inativo'?'badge-red':'badge-amber'}" style="font-size:12px;padding:2px 10px">${m.status}</span></div>
+        <div><strong>Veículo:</strong> ${m.tipoVeiculo||'—'}</div>
+        <div><strong>CNH Status:</strong> <span class="badge-status ${m.statusCNH==='REGULAR'?'badge-green':'badge-red'}">${m.statusCNH||'—'}</span></div>
+        <div><strong>Periódico:</strong> <span class="badge-status ${m.statusPeriodico==='REGULAR'?'badge-green':'badge-amber'}">${m.statusPeriodico||'—'}</span></div>
+      </div>
+    </div>`;
+
+    // RESUMO GERAL
+    html+=`<div class="card">
+      <div class="card-title">📊 Resumo Geral</div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-value">${res.diasTrabalhados}</div><div class="stat-label">Dias Trabalhados</div></div>
+        <div class="stat-card amber"><div class="stat-value">${fh(res.totalHoras)}</div><div class="stat-label">Horas Totais</div></div>
+        <div class="stat-card red"><div class="stat-value">${fh(res.totalExtras)}</div><div class="stat-label">Horas Extras</div></div>
+        <div class="stat-card"><div class="stat-value">${fh(res.mediaHorasDia)}</div><div class="stat-label">Média/Dia</div></div>
+        <div class="stat-card ${res.saldoBH>0?'amber':'green'}"><div class="stat-value">${fh(Math.abs(res.saldoBH))}</div><div class="stat-label">Saldo B.H.</div></div>
+        <div class="stat-card ${res.diasIrregulares>0?'red':'green'}"><div class="stat-value">${res.diasIrregulares}</div><div class="stat-label">Irregulares</div></div>
+      </div>
+      <div style="font-size:12px;color:var(--text-dim);margin-top:8px">Período: ${res.primeiraJornada||'—'} a ${res.ultimaJornada||'—'} | Compensado: ${fh(res.totalCompensado)}</div>
+    </div>`;
+
+    // HORAS POR MÊS
+    const meses=Object.keys(d.horasPorMes);
+    if(meses.length>0){
+      html+=`<div class="card">
+        <div class="card-title">📅 Horas por Mês</div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Mês</th><th>Dias</th><th>Horas</th><th>Extras</th><th>Média/Dia</th></tr></thead>
+          <tbody>${meses.map(m=>{
+            const v=d.horasPorMes[m];
+            return `<tr><td><strong>${m}</strong></td><td style="text-align:center">${v.dias}</td><td style="text-align:center">${fh(v.horas)}</td><td style="text-align:center;color:var(--amber);font-weight:700">${fh(v.extras)}</td><td style="text-align:center">${fh(v.dias>0?v.horas/v.dias:0)}</td></tr>`;
+          }).join('')}</tbody>
+        </table></div>
+      </div>`;
+    }
+
+    // ADVERTÊNCIAS
+    html+=`<div class="card">
+      <div class="card-title" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden')">⚠️ Advertências (${d.advertencias.length}) ▸</div>
+      <div class="${d.advertencias.length===0?'hidden':''}">
+        ${d.advertencias.length===0?'<p style="color:var(--text-dim);font-size:13px">Nenhuma advertência registrada</p>':`
+        <div class="table-wrap"><table>
+          <thead><tr><th>Data</th><th>Grau</th><th>Tipo</th><th>Descrição</th></tr></thead>
+          <tbody>${d.advertencias.map(a=>`<tr><td>${a.data}</td><td><span class="badge-status badge-red">${a.grau}</span></td><td>${a.tipo}</td><td style="font-size:11px">${a.descricao}</td></tr>`).join('')}</tbody>
+        </table></div>`}
+      </div>
+    </div>`;
+
+    // NOTIFICAÇÕES
+    html+=`<div class="card">
+      <div class="card-title" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden')">📨 Notificações (${d.notificacoes.length}) ▸</div>
+      <div class="${d.notificacoes.length===0?'hidden':''}">
+        ${d.notificacoes.length===0?'<p style="color:var(--text-dim);font-size:13px">Nenhuma notificação registrada</p>':`
+        <div class="table-wrap"><table>
+          <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th></tr></thead>
+          <tbody>${d.notificacoes.map(n=>`<tr><td>${n.data}</td><td>${n.tipo}</td><td style="font-size:11px">${n.descricao}</td></tr>`).join('')}</tbody>
+        </table></div>`}
+      </div>
+    </div>`;
+
+    // COMPENSAÇÕES / FOLGAS
+    html+=`<div class="card">
+      <div class="card-title" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden')">🏖️ Folgas e Compensações (${d.folgas.length + d.compensacoes.length}) ▸</div>
+      <div class="${(d.folgas.length+d.compensacoes.length)===0?'hidden':''}">
+        ${d.folgas.length>0?`<h4 style="font-size:12px;color:var(--accent);margin:8px 0 4px">Folgas Registradas</h4>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Data</th><th>Tipo</th></tr></thead>
+          <tbody>${d.folgas.map(f=>`<tr><td>${f.data}</td><td>${f.tipo}</td></tr>`).join('')}</tbody>
+        </table></div>`:''}
+        ${d.compensacoes.length>0?`<h4 style="font-size:12px;color:var(--accent);margin:8px 0 4px">Compensações (Banco de Horas)</h4>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Data</th><th>Tipo</th><th>Horas</th></tr></thead>
+          <tbody>${d.compensacoes.map(c=>`<tr><td>${c.data}</td><td>${c.tipo}</td><td style="font-weight:700">${fh(c.horas)}</td></tr>`).join('')}</tbody>
+        </table></div>`:''}
+        ${(d.folgas.length+d.compensacoes.length)===0?'<p style="color:var(--text-dim);font-size:13px">Nenhuma folga ou compensação registrada</p>':''}
+      </div>
+    </div>`;
+
+    div.innerHTML=html;
+  }catch(e){
+    div.innerHTML=`<div class="card" style="color:var(--red)">❌ Erro: ${e.message}</div>`;
+  }
+}
+
+// ================================================================
 // CONTATOS
 // ================================================================
 function getContatos(){try{return JSON.parse(localStorage.getItem('phipilot_contatos')||'[]')}catch(e){return[]}}
@@ -1536,7 +1738,7 @@ async function carregarConformidade(){
       let h='<div class="table-wrap"><table><thead><tr><th>Motorista</th><th>Placa</th><th>Fim Jornada</th><th>Início Seguinte</th><th>Intervalo</th><th>Déficit</th><th>Gravidade</th><th></th></tr></thead><tbody>';
       m1.registros.forEach(r=>{
         const gc=r.gravidade==='GRAVE'?'badge-red':r.gravidade==='MODERADA'?'badge-amber':'badge-green';
-        h+=`<tr><td><strong>${r.nome}</strong></td><td>${r.placa||'—'}</td><td style="font-family:'JetBrains Mono',monospace;font-size:12px">${r.fimJornada}</td><td style="font-family:'JetBrains Mono',monospace;font-size:12px">${r.inicioJornada}</td><td><span class="badge-status badge-red">${r.intervaloHoras}h</span></td><td style="color:var(--red);font-weight:700">-${r.deficitHoras}h</td><td><span class="badge-status ${gc}">${r.gravidade}</span></td><td><button class="btn sm red-outline" onclick="alertar('INTERJORNADA &lt; 11h','${r.nome}','Intervalo de apenas ${r.intervaloHoras}h entre jornadas (mínimo 11h). Fim: ${r.fimJornada}, Início: ${r.inicioJornada}. Art. 235-C §3º CLT.')">⚠️ Alertar</button></td></tr>`;
+        h+=`<tr><td><strong>${r.nome}</strong></td><td>${r.placa||'—'}</td><td style="font-family:'JetBrains Mono',monospace;font-size:12px">${r.fimJornada}</td><td style="font-family:'JetBrains Mono',monospace;font-size:12px">${r.inicioJornada}</td><td><span class="badge-status badge-red">${fh(r.intervaloHoras)}</span></td><td style="color:var(--red);font-weight:700">-${fh(r.deficitHoras)}</td><td><span class="badge-status ${gc}">${r.gravidade}</span></td><td><button class="btn sm red-outline" onclick="alertar('INTERJORNADA &lt; 11h','${r.nome}','Intervalo de apenas ${fh(r.intervaloHoras)} entre jornadas (mínimo 11h). Fim: ${r.fimJornada}, Início: ${r.inicioJornada}. Art. 235-C §3º CLT.')">⚠️ Alertar</button></td></tr>`;
       });
       h+='</tbody></table></div>';
       document.getElementById('m1-content').innerHTML=h;
