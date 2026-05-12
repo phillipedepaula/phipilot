@@ -177,6 +177,7 @@
   <!-- TABS -->
   <div class="tabs">
     <button class="tab active" onclick="trocarAba('dashboard',this)">📈 Dashboard</button>
+    <button class="tab" onclick="trocarAba('monitoramento',this)">📡 Monitor</button>
     <button class="tab" onclick="trocarAba('cadastros',this)">👥 Cadastros</button>
     <button class="tab" onclick="trocarAba('conformidade',this)">⚖️ Conformidade<span class="tab-badge hidden" id="badge-conf">0</span></button>
     <button class="tab" onclick="trocarAba('auditoria',this)">📊 Auditoria</button>
@@ -232,6 +233,34 @@
           <button class="btn primary" onclick="gerarRelatorioExecutivo()" id="btn-exec">📄 Gerar PDF Executivo</button>
           <span id="exec-status" style="font-size:13px"></span>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ABA MONITORAMENTO ===== -->
+  <div id="aba-monitoramento" class="hidden">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <div class="card-title">📡 Monitoramento em Tempo Real</div>
+          <div class="card-subtitle">Última atividade de cada motorista com localização GPS</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span id="monitor-atualizado" style="font-size:11px;color:var(--text-dim)"></span>
+          <button class="btn primary" onclick="carregarMonitoramento()">🔄 Atualizar</button>
+        </div>
+      </div>
+      <div class="stats-row" style="margin-bottom:12px">
+        <div class="stat-card green"><div class="stat-value" id="mon-conducao">0</div><div class="stat-label">Em Condução</div></div>
+        <div class="stat-card amber"><div class="stat-value" id="mon-parado">0</div><div class="stat-label">Parado / Espera</div></div>
+        <div class="stat-card"><div class="stat-value" id="mon-encerrado">0</div><div class="stat-label">Jornada Encerrada</div></div>
+        <div class="stat-card red"><div class="stat-value" id="mon-sem">0</div><div class="stat-label">Sem Registro</div></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th style="width:30px"></th><th>Motorista</th><th>Placa</th><th>Situação</th><th>Último Evento</th><th>Hora</th><th>Tempo</th><th>Localização</th><th>WhatsApp</th></tr></thead>
+          <tbody id="tabela-monitor"><tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -497,6 +526,35 @@
       </div>
       <span id="folga-status" style="font-size:13px"></span>
     </div>
+
+    <!-- INSERÇÃO MANUAL DE REGISTRO -->
+    <div class="card">
+      <div class="card-title">✏️ Inserir Registro Manual</div>
+      <div class="card-subtitle">Para quando o motorista esqueceu de registrar e informou por WhatsApp ou chamado de correção.</div>
+      <div class="form-row">
+        <div class="form-group"><label>Motorista</label><select id="manual-motorista"><option value="">Selecione...</option></select></div>
+        <div class="form-group"><label>Data</label><input type="date" id="manual-data"></div>
+        <div class="form-group"><label>Hora</label><input type="time" id="manual-hora"></div>
+        <div class="form-group"><label>Evento</label>
+          <select id="manual-evento">
+            <option value="">Selecione...</option>
+            <option value="Início da Jornada">Início da Jornada</option>
+            <option value="Parada Descanso">Parada Descanso</option>
+            <option value="Parada Refeição">Parada Refeição</option>
+            <option value="Espera (Carga/Descarga)">Espera (Carga/Descarga)</option>
+            <option value="Retorno Condução">Retorno Condução</option>
+            <option value="Fim da Jornada">Fim da Jornada</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:2"><label>Motivo / Observação</label><input type="text" id="manual-obs" placeholder="Ex: Motorista informou por WhatsApp às 14:30. Chamado de correção nº 003."></div>
+        <div style="display:flex;align-items:end;gap:10px">
+          <button class="btn primary" onclick="inserirRegistroManual()" id="btn-manual">✏️ Inserir Registro</button>
+        </div>
+      </div>
+      <span id="manual-status" style="font-size:13px"></span>
+    </div>
   </div>
 
   <!-- ===== ABA NOTIFICAÇÕES ===== -->
@@ -705,6 +763,13 @@
             <div style="font-size:28px;margin-bottom:8px">✅</div>
             <div style="font-weight:700;font-size:14px;color:var(--amber)">Autorização de Abono</div>
             <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Autorização para registro manual — vinculado ao chamado de correção</div>
+          </div>
+        </div>
+        <div class="card" style="border:2px solid var(--accent);cursor:pointer;transition:transform .15s" onclick="gerarDoc('consentimento_byod')" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform=''">
+          <div style="text-align:center;padding:12px 0">
+            <div style="font-size:28px;margin-bottom:8px">📱</div>
+            <div style="font-weight:700;font-size:14px;color:var(--accent)">Consentimento BYOD</div>
+            <div style="font-size:11px;color:var(--text-dim);margin-top:4px">Uso do celular pessoal, dados móveis e GPS</div>
           </div>
         </div>
         <div class="card" style="border:2px solid var(--red);cursor:pointer;transition:transform .15s" onclick="gerarDoc('aviso_previo')" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform=''">
@@ -1021,8 +1086,78 @@ function ds(d){return['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Q
 
 function ajustarDatas(){const t=document.getElementById('sel-tipo').value,h=new Date();let i=new Date(h);if(t==='semanal')i.setDate(i.getDate()-6);else if(t==='mensal')i.setDate(1);document.getElementById('inp-dt-inicio').value=fdi(i);document.getElementById('inp-dt-fim').value=fdi(h)}
 function salvarURL(){URL_SCRIPT=document.getElementById('cfg-url').value.trim();if(!URL_SCRIPT)return alert('Informe a URL');localStorage.setItem('ctrl_url',URL_SCRIPT);document.getElementById('config-bar').style.display='none';carregarTudo()}
-function trocarAba(a,el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['dashboard','cadastros','conformidade','auditoria','notificacoes','advertencias','bancohoras','documentos','contatos','prontuario','relatorios'].forEach(x=>document.getElementById('aba-'+x).classList.toggle('hidden',x!==a));if(a==='advertencias'||a==='notificacoes')popularDropdownAdv();if(a==='bancohoras')carregarBancoHoras();if(a==='documentos')popularDropdownDocs();if(a==='auditoria')popularDropdownFolga();if(a==='cadastros')carregarCadastros();if(a==='contatos')carregarContatos();if(a==='prontuario')popularDropdownProntuario()}
+function trocarAba(a,el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['dashboard','monitoramento','cadastros','conformidade','auditoria','notificacoes','advertencias','bancohoras','documentos','contatos','prontuario','relatorios'].forEach(x=>document.getElementById('aba-'+x).classList.toggle('hidden',x!==a));if(a==='advertencias'||a==='notificacoes')popularDropdownAdv();if(a==='bancohoras')carregarBancoHoras();if(a==='documentos')popularDropdownDocs();if(a==='auditoria')popularDropdownFolga();if(a==='cadastros')carregarCadastros();if(a==='contatos')carregarContatos();if(a==='prontuario')popularDropdownProntuario();if(a==='monitoramento')carregarMonitoramento()}
 async function carregarTudo(){await Promise.all([carregarDashboard(),carregarConformidade(),carregarAuditoria(),carregarMotoristas()])}
+
+// ================================================================
+// MONITORAMENTO
+// ================================================================
+function formatCoord(val){
+  if(!val)return '';
+  var s=val.toString().replace(/\s/g,'');
+  // Se tem mais de um ponto (ex: -18.756.610), remover o segundo ponto
+  var partes=s.split('.');
+  if(partes.length>2){
+    s=partes[0]+'.'+partes.slice(1).join('');
+  }
+  // Se tem vírgula como decimal
+  s=s.replace(',','.');
+  // Se não tem ponto e tem mais de 4 dígitos, inserir ponto
+  if(s.indexOf('.')===-1){
+    var neg=s.startsWith('-');
+    var num=neg?s.substring(1):s;
+    if(num.length>4){s=(neg?'-':'')+num.substring(0,2)+'.'+num.substring(2);}
+  }
+  return s;
+}
+
+async function carregarMonitoramento(){
+  const tbody=document.getElementById('tabela-monitor');
+  tbody.innerHTML='<tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr>';
+  try{
+    const r=await fetch(`${URL_SCRIPT}?action=monitoramento`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    
+    document.getElementById('monitor-atualizado').textContent='Atualizado: '+d.atualizadoEm;
+    
+    let conducao=0,parado=0,encerrado=0,sem=0;
+    
+    tbody.innerHTML=d.motoristas.map(m=>{
+      const sit=m.situacao;
+      let sitBadge='',sitIcon='';
+      if(sit==='EM CONDUÇÃO'){sitBadge='badge-green';sitIcon='🚛';conducao++;}
+      else if(sit==='EM DESCANSO'){sitBadge='badge-amber';sitIcon='☕';parado++;}
+      else if(sit==='EM REFEIÇÃO'){sitBadge='badge-amber';sitIcon='🍽️';parado++;}
+      else if(sit==='AGUARDANDO CARGA'){sitBadge='badge-amber';sitIcon='📦';parado++;}
+      else if(sit==='JORNADA ENCERRADA'){sitBadge='badge-status';sitIcon='🏠';encerrado++;}
+      else{sitBadge='badge-red';sitIcon='❓';sem++;}
+      
+      const ur=m.ultimoRegistro;
+      const tempoStyle=m.minutosDesde>600?'color:var(--red);font-weight:700':m.minutosDesde>120?'color:var(--amber)':'';
+      const whatsLink=m.telefone?`https://wa.me/55${m.telefone.replace(/\\D/g,'')}`:'';
+      const mapsLink=(ur&&ur.lat&&ur.lng)?`https://www.google.com/maps?q=${formatCoord(ur.lat)},${formatCoord(ur.lng)}`:'';
+      
+      return `<tr>
+        <td style="font-size:18px;text-align:center">${sitIcon}</td>
+        <td><strong>${m.nome}</strong><br><span style="font-size:11px;color:var(--text-dim)">${m.token}</span></td>
+        <td>${m.placa||'—'}</td>
+        <td><span class="badge-status ${sitBadge}">${sit}</span></td>
+        <td>${ur?ur.evento:'—'}</td>
+        <td style="font-family:'JetBrains Mono',monospace">${ur?ur.data+' '+ur.hora:'—'}</td>
+        <td style="${tempoStyle}">${m.tempoDesde||'—'}</td>
+        <td>${mapsLink?`<a href="${mapsLink}" target="_blank" style="color:var(--accent);text-decoration:none;font-size:11px">📍 Ver mapa</a>`:'—'}</td>
+        <td>${whatsLink?`<a href="${whatsLink}" target="_blank" style="text-decoration:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>`:''}</td>
+      </tr>`;
+    }).join('');
+    
+    document.getElementById('mon-conducao').textContent=conducao;
+    document.getElementById('mon-parado').textContent=parado;
+    document.getElementById('mon-encerrado').textContent=encerrado;
+    document.getElementById('mon-sem').textContent=sem;
+    
+  }catch(e){tbody.innerHTML=`<tr><td colspan="9" style="color:var(--red);text-align:center;padding:20px">${e.message}</td></tr>`}
+}
 
 // ================================================================
 // CADASTROS
@@ -1673,6 +1808,48 @@ async function gerarRelatorioExecutivo(){
 }
 
 // ================================================================
+// EDIÇÃO E EXCLUSÃO DE REGISTROS
+// ================================================================
+function abrirEditarRegistro(linha,evento,hora,nome){
+  const novoEvento=prompt(`Editar registro de ${nome}\nHora: ${hora}\n\nEvento atual: ${evento}\n\nNovo evento (deixe vazio para manter):`,evento);
+  if(novoEvento===null)return;
+  
+  const novaHora=prompt(`Hora atual: ${hora}\n\nNova hora (formato HH:MM, deixe vazio para manter):`,hora);
+  if(novaHora===null)return;
+  
+  if(!novoEvento&&!novaHora){alert('Nenhuma alteração feita');return;}
+  
+  editarRegistroAPI(linha,novoEvento,novaHora,nome);
+}
+
+async function editarRegistroAPI(linha,evento,hora,nome){
+  try{
+    const params=new URLSearchParams({action:'editar_registro',linha:linha});
+    if(evento)params.append('evento',encodeURIComponent(evento));
+    if(hora)params.append('hora',encodeURIComponent(hora));
+    const r=await fetch(`${URL_SCRIPT}?${params}`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    alert('✅ '+d.message);
+    carregarAuditoria();
+  }catch(e){alert('❌ Erro: '+e.message)}
+}
+
+async function excluirRegistroPainel(linha,nome,evento,hora){
+  if(!confirm(`⚠️ Excluir registro de ${nome}?\n\n${hora} — ${evento}\n\nEsta ação não pode ser desfeita.`))return;
+  if(!confirm(`CONFIRMAÇÃO FINAL\n\nExcluir permanentemente o registro:\n${nome} — ${evento} às ${hora}?`))return;
+  
+  try{
+    const params=new URLSearchParams({action:'excluir_registro',linha:linha});
+    const r=await fetch(`${URL_SCRIPT}?${params}`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    alert('✅ '+d.message);
+    carregarAuditoria();
+  }catch(e){alert('❌ Erro: '+e.message)}
+}
+
+// ================================================================
 // REGISTRO DE FOLGA/FERIADO
 // ================================================================
 async function registrarFolga(){
@@ -1710,13 +1887,61 @@ async function registrarFolga(){
   btn.disabled=false;btn.textContent='📅 Registrar';
 }
 
-// Popular dropdown de folga quando auditoria carrega
+// Popular dropdown de folga e registro manual quando auditoria carrega
 function popularDropdownFolga(){
   const s=document.getElementById('folga-motorista');
+  const s2=document.getElementById('manual-motorista');
   if(s.options.length<=1 && MOTORISTAS.length>0){
     s.innerHTML='<option value="">Selecione...</option>';
-    MOTORISTAS.forEach(m=>{s.innerHTML+=`<option value="${m.token}">${m.nome} — ${m.placa||''}</option>`});
+    s2.innerHTML='<option value="">Selecione...</option>';
+    MOTORISTAS.forEach(m=>{
+      const opt=`<option value="${m.token}">${m.nome} — ${m.placa||''}</option>`;
+      s.innerHTML+=opt;
+      s2.innerHTML+=opt;
+    });
   }
+}
+
+async function inserirRegistroManual(){
+  const token=document.getElementById('manual-motorista').value;
+  const dataVal=document.getElementById('manual-data').value;
+  const hora=document.getElementById('manual-hora').value;
+  const evento=document.getElementById('manual-evento').value;
+  const obs=document.getElementById('manual-obs').value;
+  const st=document.getElementById('manual-status');
+
+  if(!token)return alert('Selecione o motorista');
+  if(!dataVal)return alert('Informe a data');
+  if(!hora)return alert('Informe a hora');
+  if(!evento)return alert('Selecione o evento');
+
+  const p=dataVal.split('-');
+  const dataBR=p[2]+'/'+p[1]+'/'+p[0];
+
+  if(!confirm(`Inserir registro manual?\n\n${evento} — ${dataBR} às ${hora}\n\nMotivo: ${obs||'Não informado'}`))return;
+
+  const btn=document.getElementById('btn-manual');
+  btn.disabled=true;btn.textContent='⏳ Inserindo...';
+
+  try{
+    const params=new URLSearchParams({
+      action:'inserir_registro',
+      token,
+      data_reg:dataBR,
+      hora_reg:hora,
+      evento:encodeURIComponent(evento),
+      obs:encodeURIComponent(obs)
+    });
+    const r=await fetch(`${URL_SCRIPT}?${params}`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    st.innerHTML=`✅ ${d.message}`;
+    st.style.color='var(--green)';
+    carregarAuditoria();
+  }catch(e){
+    st.textContent='❌ '+e.message;st.style.color='var(--red)';
+  }
+  btn.disabled=false;btn.textContent='✏️ Inserir Registro';
 }
 
 // ================================================================
@@ -1894,7 +2119,12 @@ function renderAuditoria(lista){
       if(!m.intervaloOK)h+=`<div style="margin-top:8px;padding:8px;background:var(--red-bg);color:var(--red);border-radius:8px;font-size:12px;font-weight:600">⚠️ ${m.motivoIntervalo}</div>`;
     }else{h+=`<p style="color:var(--text-dim)">Nenhum intervalo${m.horasTrabalhadas>4?' — <strong style="color:var(--red)">ATENÇÃO</strong>':''}</p>`}
     h+=`</div><div class="detail-block"><h5>Cronologia</h5>`;
-    m.registros.forEach(r=>{h+=`<div class="detail-item"><span class="label">${r.hora}</span><span class="val" style="font-family:'DM Sans',sans-serif;font-weight:500">${r.evento}</span></div>`});
+    m.registros.forEach(r=>{
+      var evSafe = (r.evento||'').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+      var hrSafe = (r.hora||'').replace(/'/g,"\\'");
+      var nmSafe = (m.nome||'').replace(/'/g,"\\'");
+      h+=`<div class="detail-item" style="display:flex;align-items:center;gap:8px"><span class="label">${r.hora}</span><span class="val" style="font-family:'DM Sans',sans-serif;font-weight:500;flex:1">${r.evento}</span>${r.linha?`<button class="btn sm" style="padding:2px 6px;font-size:10px" onclick="abrirEditarRegistro(${r.linha},'${evSafe}','${hrSafe}','${nmSafe}')">✏️</button><button class="btn sm" style="padding:2px 6px;font-size:10px;border-color:var(--red);color:var(--red)" onclick="excluirRegistroPainel(${r.linha},'${nmSafe}','${evSafe}','${hrSafe}')">🗑️</button>`:''}</div>`;
+    });
     h+=`<div style="margin-top:12px;padding-top:8px;border-top:1px solid var(--border)"><h5>Interjornada</h5><div class="detail-item"><span class="label">Fim:</span><span class="val">${m.fimJornada||'—'}</span></div><div class="detail-item"><span class="label">Próx. início:</span><span class="val">${m.proximoInicio}</span></div><div class="detail-item"><span class="label">Intervalo:</span><span class="val" style="color:${m.interjornadaStatus==='INFRAÇÃO'?'var(--red)':m.interjornadaStatus==='ATENÇÃO'?'var(--amber)':'var(--green)'}">${fh(m.interjornadaHoras)} (${m.interjornadaStatus})</span></div></div></div></div></td></tr>`;
   });
   tbody.innerHTML=h;
