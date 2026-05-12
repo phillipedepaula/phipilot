@@ -74,10 +74,11 @@
   .badge-cyan{background:var(--cyan-bg);color:var(--cyan)}
   .badge-purple{background:var(--purple-bg);color:var(--purple)}
 
-  .monitor-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-  .monitor-count{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700}
+  .monitor-header{display:flex;align-items:center;justify-content:space-between;padding:12px 0}
+  .monitor-count{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;min-width:40px;text-align:center}
   .monitor-count.zero{color:var(--green)}
   .monitor-count.alert{color:var(--red)}
+  .toggle-arrow{font-size:14px;color:var(--text-dim);min-width:20px;text-align:center}
 
   .empty-state{text-align:center;padding:24px;color:var(--text-dim);font-size:14px}
   .empty-state .check{font-size:32px;margin-bottom:8px}
@@ -152,12 +153,14 @@
   <!-- TABS -->
   <div class="tabs">
     <button class="tab active" onclick="trocarAba('dashboard',this)">📈 Dashboard</button>
+    <button class="tab" onclick="trocarAba('cadastros',this)">👥 Cadastros</button>
     <button class="tab" onclick="trocarAba('conformidade',this)">⚖️ Conformidade<span class="tab-badge hidden" id="badge-conf">0</span></button>
     <button class="tab" onclick="trocarAba('auditoria',this)">📊 Auditoria</button>
     <button class="tab" onclick="trocarAba('notificacoes',this)">📨 Notific.</button>
     <button class="tab" onclick="trocarAba('advertencias',this)">📝 Advert.</button>
     <button class="tab" onclick="trocarAba('bancohoras',this)">⏱️ Banco H.</button>
     <button class="tab" onclick="trocarAba('documentos',this)">📄 Docs</button>
+    <button class="tab" onclick="trocarAba('contatos',this)">📞 Contatos</button>
     <button class="tab" onclick="trocarAba('relatorios',this)">📋 Relatórios</button>
   </div>
 
@@ -208,6 +211,134 @@
     </div>
   </div>
 
+  <!-- ===== ABA CADASTROS ===== -->
+  <div id="aba-cadastros" class="hidden">
+    <!-- LISTA DE MOTORISTAS -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <div class="card-title">👥 Motoristas Cadastrados</div>
+          <div class="card-subtitle">Clique em um motorista para editar. Botão WhatsApp abre conversa direta.</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn primary" onclick="abrirFormMotorista()">➕ Novo Motorista</button>
+          <button class="btn" onclick="abrirImportacao()">📥 Importar Planilha</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nº</th><th>Nome</th><th>CPF</th><th>Token</th><th>Placa</th><th>Empresa</th><th>Status</th><th>Telefone</th><th>Ações</th></tr></thead>
+          <tbody id="tabela-cadastro"><tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- FORMULÁRIO MOTORISTA -->
+    <div class="card hidden" id="form-motorista">
+      <div class="card-title" id="form-mot-titulo">➕ Cadastrar Novo Motorista</div>
+      <div class="card-subtitle">Preencha os dados. Token será gerado automaticamente se não informado.</div>
+      
+      <h4 style="color:var(--accent);font-size:13px;margin:16px 0 8px;border-bottom:1px solid var(--border);padding-bottom:4px">Dados Pessoais</h4>
+      <div class="form-row">
+        <div class="form-group" style="flex:2"><label>Nome Completo *</label><input type="text" id="fm-nome" placeholder="Nome completo do motorista"></div>
+        <div class="form-group"><label>CPF *</label><input type="text" id="fm-cpf" placeholder="000.000.000-00" maxlength="14"></div>
+        <div class="form-group"><label>Data de Nascimento</label><input type="date" id="fm-nascimento"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:2"><label>Endereço</label><input type="text" id="fm-endereco" placeholder="Rua, número, bairro, cidade/UF"></div>
+        <div class="form-group"><label>Telefone (WhatsApp)</label><input type="text" id="fm-telefone" placeholder="(31) 99999-9999" maxlength="15"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="fm-email" placeholder="email@exemplo.com"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Tipo Sanguíneo</label>
+          <select id="fm-sangue"><option value="">Selecione...</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select>
+        </div>
+        <div class="form-group"><label>Contato de Emergência</label><input type="text" id="fm-contato-emerg" placeholder="Nome do familiar"></div>
+        <div class="form-group"><label>Tel. Emergência</label><input type="text" id="fm-tel-emerg" placeholder="(31) 99999-9999" maxlength="15"></div>
+      </div>
+      
+      <h4 style="color:var(--accent);font-size:13px;margin:16px 0 8px;border-bottom:1px solid var(--border);padding-bottom:4px">Dados Profissionais</h4>
+      <div class="form-row">
+        <div class="form-group"><label>CTPS (Nº/Série)</label><input type="text" id="fm-ctps" placeholder="12345"></div>
+        <div class="form-group"><label>Data de Admissão</label><input type="date" id="fm-admissao"></div>
+        <div class="form-group"><label>Função</label><input type="text" id="fm-funcao" value="Motorista Carreteiro"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>CNH (Nº Registro)</label><input type="text" id="fm-cnh" placeholder="00000000000"></div>
+        <div class="form-group"><label>Categoria</label>
+          <select id="fm-cat-cnh"><option value="">Selecione...</option><option>C</option><option>D</option><option>E</option><option>A/C</option><option>A/D</option><option>A/E</option><option>A/B</option></select>
+        </div>
+        <div class="form-group"><label>Validade CNH</label><input type="date" id="fm-val-cnh"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Exame Admissional</label><input type="date" id="fm-admissional"></div>
+        <div class="form-group"><label>Último Periódico</label><input type="date" id="fm-periodico"></div>
+        <div class="form-group"><label>Último Toxicológico</label><input type="date" id="fm-toxicologico"></div>
+      </div>
+      
+      <h4 style="color:var(--accent);font-size:13px;margin:16px 0 8px;border-bottom:1px solid var(--border);padding-bottom:4px">Veículo e Sistema</h4>
+      <div class="form-row">
+        <div class="form-group"><label>Placa do Veículo</label><input type="text" id="fm-placa" placeholder="ABC-1234" maxlength="8" style="text-transform:uppercase"></div>
+        <div class="form-group"><label>Tipo de Veículo</label>
+          <select id="fm-tipo-veiculo"><option value="">Selecione...</option><option>Carreta 6 eixos</option><option>Bitrem 9 eixos</option><option>Rodotrem 9 eixos</option><option>Truck 3 eixos</option><option>Carreta simples 5 eixos</option></select>
+        </div>
+        <div class="form-group"><label>Empresa</label><select id="fm-empresa"><option value="">Selecione...</option></select></div>
+        <div class="form-group"><label>Token (auto se vazio)</label><input type="text" id="fm-token" placeholder="XXX-0000 (opcional)" maxlength="8" style="text-transform:uppercase"></div>
+      </div>
+      
+      <div style="display:flex;gap:10px;margin-top:16px;align-items:center">
+        <button class="btn primary" onclick="salvarMotorista()" id="btn-salvar-mot">💾 Salvar Motorista</button>
+        <button class="btn" onclick="fecharFormMotorista()">Cancelar</button>
+        <span id="fm-status" style="font-size:13px"></span>
+      </div>
+      <input type="hidden" id="fm-modo" value="novo">
+      <input type="hidden" id="fm-token-edit" value="">
+    </div>
+
+    <!-- CADASTRO DE EMPRESAS -->
+    <div class="card">
+      <div class="card-title">🏢 Empresas Cadastradas</div>
+      <div class="card-subtitle">Empresas empregadoras (Matos e Marques e prestadoras de serviço)</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Código</th><th>Razão Social</th><th>CNPJ</th><th>Cidade/UF</th><th>Telefone</th><th>Status</th></tr></thead>
+          <tbody id="tabela-empresas"><tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr></tbody>
+        </table>
+      </div>
+      <h4 style="color:var(--accent);font-size:13px;margin:16px 0 8px;border-bottom:1px solid var(--border);padding-bottom:4px">Cadastrar Nova Empresa</h4>
+      <div class="form-row">
+        <div class="form-group" style="flex:2"><label>Razão Social *</label><input type="text" id="fe-razao" placeholder="Nome da empresa"></div>
+        <div class="form-group"><label>CNPJ *</label><input type="text" id="fe-cnpj" placeholder="00.000.000/0000-00" maxlength="18"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:2"><label>Endereço</label><input type="text" id="fe-endereco" placeholder="Rua, número"></div>
+        <div class="form-group"><label>Cidade/UF</label><input type="text" id="fe-cidade" placeholder="Curvelo/MG"></div>
+        <div class="form-group"><label>CEP</label><input type="text" id="fe-cep" placeholder="00.000-000" maxlength="10"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Telefone</label><input type="text" id="fe-telefone" placeholder="(31) 3333-3333"></div>
+        <div style="display:flex;align-items:end;gap:10px">
+          <button class="btn primary" onclick="salvarEmpresa()">💾 Cadastrar Empresa</button>
+          <span id="fe-status" style="font-size:13px"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMPORTAÇÃO -->
+    <div class="card hidden" id="card-importacao">
+      <div class="card-title">📥 Importar Motoristas de Planilha</div>
+      <div class="card-subtitle">Arraste um arquivo Excel (.xlsx) ou CSV com os dados dos motoristas. As colunas devem seguir a ordem: Nome, CPF, Nascimento, Endereço, Telefone, Email, CTPS, Admissão, CNH, Categoria, Validade CNH, Placa, Tipo Veículo, Empresa.</div>
+      <div style="border:2px dashed var(--border);border-radius:12px;padding:30px;text-align:center;margin:12px 0;cursor:pointer" id="drop-zone" onclick="document.getElementById('file-import').click()">
+        <div style="font-size:32px;margin-bottom:8px">📂</div>
+        <div style="font-size:14px;font-weight:600">Arraste o arquivo aqui ou clique para selecionar</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-top:4px">Aceita .xlsx e .csv</div>
+        <input type="file" id="file-import" accept=".xlsx,.csv" style="display:none" onchange="processarImportacao(this)">
+      </div>
+      <div id="import-preview" class="hidden"></div>
+      <div id="import-status" style="font-size:13px;margin-top:8px"></div>
+    </div>
+  </div>
+
   <!-- ===== ABA CONFORMIDADE ===== -->
   <div id="aba-conformidade" class="hidden">
 
@@ -223,50 +354,50 @@
 
     <!-- MONITOR 1: INTERJORNADA -->
     <div class="card">
-      <div class="monitor-header">
+      <div class="monitor-header" style="cursor:pointer" onclick="toggleMonitor('m1-content',this)">
         <div>
           <div class="card-title">🔴 Interjornada Violada (&lt; 11h)</div>
           <div class="card-subtitle">Art. 235-C, §3º, CLT — Intervalo mínimo de 11 horas entre jornadas</div>
         </div>
-        <div class="monitor-count" id="m1-count">-</div>
+        <div style="display:flex;align-items:center;gap:8px"><div class="monitor-count" id="m1-count">-</div><span class="toggle-arrow" id="arrow-m1-content">▶</span></div>
       </div>
-      <div id="m1-content"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
+      <div id="m1-content" style="display:none"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
     </div>
 
     <!-- MONITOR 2: FOLGA 7 DIAS -->
     <div class="card">
-      <div class="monitor-header">
+      <div class="monitor-header" style="cursor:pointer" onclick="toggleMonitor('m2-content',this)">
         <div>
           <div class="card-title">🟡 Folga Semanal — Dias Consecutivos</div>
           <div class="card-subtitle">Art. 235-C, §3º c/c Art. 67, CLT — Descanso semanal de 35 horas a cada 7 dias</div>
         </div>
-        <div class="monitor-count" id="m2-count">-</div>
+        <div style="display:flex;align-items:center;gap:8px"><div class="monitor-count" id="m2-count">-</div><span class="toggle-arrow" id="arrow-m2-content">▶</span></div>
       </div>
-      <div id="m2-content"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
+      <div id="m2-content" style="display:none"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
     </div>
 
     <!-- MONITOR 3: INTRAJORNADA -->
     <div class="card">
-      <div class="monitor-header">
+      <div class="monitor-header" style="cursor:pointer" onclick="toggleMonitor('m3-content',this)">
         <div>
           <div class="card-title">🟣 Intrajornada Não Registrada (ontem)</div>
           <div class="card-subtitle">Art. 71, CLT — Intervalo mínimo de 1h para jornada superior a 6 horas</div>
         </div>
-        <div class="monitor-count" id="m3-count">-</div>
+        <div style="display:flex;align-items:center;gap:8px"><div class="monitor-count" id="m3-count">-</div><span class="toggle-arrow" id="arrow-m3-content">▶</span></div>
       </div>
-      <div id="m3-content"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
+      <div id="m3-content" style="display:none"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
     </div>
 
     <!-- MONITOR 4: VENCIMENTOS -->
     <div class="card">
-      <div class="monitor-header">
+      <div class="monitor-header" style="cursor:pointer" onclick="toggleMonitor('m4-content',this)">
         <div>
           <div class="card-title">📋 Vencimentos — CNH, Periódico e Toxicológico</div>
           <div class="card-subtitle">NR-7, Lei 13.103/2015, CTB — Documentos obrigatórios para exercício da função</div>
         </div>
-        <div class="monitor-count" id="m4-count">-</div>
+        <div style="display:flex;align-items:center;gap:8px"><div class="monitor-count" id="m4-count">-</div><span class="toggle-arrow" id="arrow-m4-content">▶</span></div>
       </div>
-      <div id="m4-content"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
+      <div id="m4-content" style="display:none"><div class="loading"><div class="spinner"></div> Carregando...</div></div>
     </div>
 
     <!-- MONITOR 5: AFASTADOS -->
@@ -561,6 +692,60 @@
     </div>
   </div>
 
+  <!-- ===== ABA CONTATOS ===== -->
+  <div id="aba-contatos" class="hidden">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div>
+          <div class="card-title">📞 Agenda de Contatos Importantes</div>
+          <div class="card-subtitle">Contatos rápidos com acesso direto ao WhatsApp. Dados salvos neste navegador.</div>
+        </div>
+        <button class="btn primary" onclick="abrirFormContato()">➕ Novo Contato</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nome</th><th>Cargo / Setor</th><th>Telefone</th><th>Email</th><th>WhatsApp</th><th>Ações</th></tr></thead>
+          <tbody id="tabela-contatos"><tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-dim)">Nenhum contato cadastrado</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card hidden" id="form-contato">
+      <div class="card-title" id="fc-titulo">➕ Novo Contato</div>
+      <div class="form-row">
+        <div class="form-group" style="flex:2"><label>Nome *</label><input type="text" id="fc-nome" placeholder="Nome completo"></div>
+        <div class="form-group"><label>Cargo / Setor *</label>
+          <select id="fc-cargo">
+            <option value="">Selecione...</option>
+            <option>Gerente</option>
+            <option>Supervisor</option>
+            <option>Chefe de Logística</option>
+            <option>Diretor</option>
+            <option>Contabilidade</option>
+            <option>Jurídico</option>
+            <option>RH / Departamento Pessoal</option>
+            <option>Financeiro</option>
+            <option>Segurança do Trabalho</option>
+            <option>Mecânico / Oficina</option>
+            <option>Fornecedor</option>
+            <option>Cliente</option>
+            <option>Outro</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Telefone (WhatsApp) *</label><input type="text" id="fc-telefone" placeholder="(31) 99999-9999" maxlength="15"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="fc-email" placeholder="email@exemplo.com"></div>
+        <div class="form-group"><label>Observação</label><input type="text" id="fc-obs" placeholder="Ex: Escritório de contabilidade X"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <button class="btn primary" onclick="salvarContato()">💾 Salvar</button>
+        <button class="btn" onclick="document.getElementById('form-contato').classList.add('hidden')">Cancelar</button>
+      </div>
+      <input type="hidden" id="fc-index" value="-1">
+    </div>
+  </div>
+
   <!-- ===== ABA RELATÓRIOS ===== -->
   <div id="aba-relatorios" class="hidden">
     <div class="card">
@@ -584,6 +769,12 @@
           <span id="drive-status" style="font-size:13px"></span>
         </div>
       </div>
+    </div>
+
+    <!-- LEMBRETES -->
+    <div class="stats-row" style="margin-bottom:16px">
+      <div class="stat-card" id="card-ult-backup"><div class="stat-value" id="ult-backup-data" style="font-size:16px">—</div><div class="stat-label">Último Backup Diário</div></div>
+      <div class="stat-card" id="card-ult-arquiv"><div class="stat-value" id="ult-arquiv-data" style="font-size:16px">—</div><div class="stat-label">Último Arquivamento Mensal</div></div>
     </div>
 
     <!-- BACKUP E ARQUIVAMENTO -->
@@ -615,9 +806,62 @@ function fh(decimal){
 let MOTORISTAS = [], AUDITORIA = null, RELATORIO_ATUAL = null;
 let AUDIT_DATE = new Date(); AUDIT_DATE.setDate(AUDIT_DATE.getDate() - 1);
 
+function toggleMonitor(contentId){
+  const el=document.getElementById(contentId);
+  const arrow=document.getElementById('arrow-'+contentId);
+  if(!el)return;
+  if(el.style.display==='none'){el.style.display='';if(arrow)arrow.textContent='▼';}
+  else{el.style.display='none';if(arrow)arrow.textContent='▶';}
+}
+
+function aplicarRecolhimento(tabelaId,limite){
+  const tbody=document.getElementById(tabelaId);if(!tbody)return;
+  const rows=tbody.querySelectorAll('tr');if(rows.length<=limite)return;
+  for(let i=limite;i<rows.length;i++){rows[i].style.display='none';}
+  const old=document.getElementById('btn-exp-'+tabelaId);if(old)old.remove();
+  const btn=document.createElement('div');btn.id='btn-exp-'+tabelaId;
+  btn.style.cssText='text-align:center;padding:10px;cursor:pointer;color:var(--accent);font-weight:600;font-size:13px;border-top:1px dashed var(--border);margin-top:4px';
+  btn.innerHTML=`▼ Mostrar mais ${rows.length-limite} motorista(s)`;btn.dataset.exp='0';
+  btn.onclick=function(){const e=this.dataset.exp==='1';for(let i=limite;i<rows.length;i++){rows[i].style.display=e?'none':'';}this.dataset.exp=e?'0':'1';this.innerHTML=e?`▼ Mostrar mais ${rows.length-limite} motorista(s)`:'▲ Recolher lista';};
+  tbody.closest('.table-wrap').after(btn);
+}
+
+function atualizarLembretes(){
+  const ultBackup=localStorage.getItem('phipilot_ult_backup');
+  const ultArquiv=localStorage.getItem('phipilot_ult_arquiv');
+  const elBackup=document.getElementById('ult-backup-data');
+  const elArquiv=document.getElementById('ult-arquiv-data');
+  const cardBackup=document.getElementById('card-ult-backup');
+  const cardArquiv=document.getElementById('card-ult-arquiv');
+
+  if(ultBackup){
+    elBackup.textContent=ultBackup;
+    // Verificar se faz mais de 2 dias
+    try{
+      const partes=ultBackup.split(',')[0].split('/');
+      const dtBackup=new Date(partes[2],partes[1]-1,partes[0]);
+      const dias=Math.floor((new Date()-dtBackup)/(86400000));
+      if(dias>2){cardBackup.classList.add('red');elBackup.textContent+=' ('+dias+' dias atrás!)';}
+      else{cardBackup.classList.remove('red');cardBackup.classList.add('green');}
+    }catch(e){}
+  }else{elBackup.textContent='Nunca realizado';cardBackup.classList.add('amber');}
+
+  if(ultArquiv){
+    elArquiv.textContent=ultArquiv;
+    try{
+      const partes=ultArquiv.split(',')[0].split('/');
+      const dtArquiv=new Date(partes[2],partes[1]-1,partes[0]);
+      const dias=Math.floor((new Date()-dtArquiv)/(86400000));
+      if(dias>35){cardArquiv.classList.add('red');elArquiv.textContent+=' ('+dias+' dias atrás!)';}
+      else{cardArquiv.classList.remove('red');cardArquiv.classList.add('green');}
+    }catch(e){}
+  }else{elArquiv.textContent='Nunca realizado';cardArquiv.classList.add('amber');}
+}
+
 (function init() {
   document.getElementById('cfg-url').value = URL_SCRIPT;
   if (URL_SCRIPT) { document.getElementById('config-bar').style.display = 'none'; carregarTudo(); }
+  atualizarLembretes();
   const h = new Date();
   document.getElementById('inp-dt-fim').value = fdi(h);
   document.getElementById('inp-dt-inicio').value = fdi(h);
@@ -633,8 +877,356 @@ function ds(d){return['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Q
 
 function ajustarDatas(){const t=document.getElementById('sel-tipo').value,h=new Date();let i=new Date(h);if(t==='semanal')i.setDate(i.getDate()-6);else if(t==='mensal')i.setDate(1);document.getElementById('inp-dt-inicio').value=fdi(i);document.getElementById('inp-dt-fim').value=fdi(h)}
 function salvarURL(){URL_SCRIPT=document.getElementById('cfg-url').value.trim();if(!URL_SCRIPT)return alert('Informe a URL');localStorage.setItem('ctrl_url',URL_SCRIPT);document.getElementById('config-bar').style.display='none';carregarTudo()}
-function trocarAba(a,el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['dashboard','conformidade','auditoria','notificacoes','advertencias','bancohoras','documentos','relatorios'].forEach(x=>document.getElementById('aba-'+x).classList.toggle('hidden',x!==a));if(a==='advertencias'||a==='notificacoes')popularDropdownAdv();if(a==='bancohoras')carregarBancoHoras();if(a==='documentos')popularDropdownDocs();if(a==='auditoria')popularDropdownFolga()}
+function trocarAba(a,el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['dashboard','cadastros','conformidade','auditoria','notificacoes','advertencias','bancohoras','documentos','contatos','relatorios'].forEach(x=>document.getElementById('aba-'+x).classList.toggle('hidden',x!==a));if(a==='advertencias'||a==='notificacoes')popularDropdownAdv();if(a==='bancohoras')carregarBancoHoras();if(a==='documentos')popularDropdownDocs();if(a==='auditoria')popularDropdownFolga();if(a==='cadastros')carregarCadastros();if(a==='contatos')carregarContatos()}
 async function carregarTudo(){await Promise.all([carregarDashboard(),carregarConformidade(),carregarAuditoria(),carregarMotoristas()])}
+
+// ================================================================
+// CADASTROS
+// ================================================================
+async function carregarCadastros(){
+  // Motoristas
+  const tbody=document.getElementById('tabela-cadastro');
+  tbody.innerHTML='<tr><td colspan="9" class="loading"><div class="spinner"></div></td></tr>';
+  try{
+    const r=await fetch(`${URL_SCRIPT}?action=listar_motoristas`);
+    const d=await r.json();
+    if(d.status!=='ok')return;
+    const todos=[...(d.motoristas||[]),...(d.afastados||[])];
+    if(!todos.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-dim)">Nenhum motorista cadastrado</td></tr>';return;}
+    tbody.innerHTML=todos.map((m,i)=>{
+      const whatsLink=m.telefone?`https://wa.me/55${m.telefone.replace(/\D/g,'')}`:'';
+      const statusCor=m.status==='Ativo'?'badge-green':m.status==='Inativo'?'badge-red':'badge-amber';
+      return `<tr>
+        <td>${m.numero||i+1}</td>
+        <td><strong>${m.nome}</strong></td>
+        <td style="font-size:11px">${m.cpf||'—'}</td>
+        <td><span style="font-family:'JetBrains Mono',monospace;color:var(--accent);font-weight:700">${m.token}</span></td>
+        <td>${m.placa||'—'}</td>
+        <td style="font-size:11px">${m.codigoEmpresa||'—'}</td>
+        <td><select onchange="mudarStatus('${m.token}',this.value)" style="padding:4px 8px;border-radius:8px;border:1px solid var(--border);font-size:11px;font-weight:600;background:${m.status==='Ativo'?'#DCFCE7':m.status==='Inativo'?'#FEE2E2':'#FEF3C7'};cursor:pointer">
+          <option value="Ativo" ${m.status==='Ativo'?'selected':''}>✅ Ativo</option>
+          <option value="Férias" ${m.status==='Férias'?'selected':''}>🏖️ Férias</option>
+          <option value="Atestado Médico" ${m.status==='Atestado Médico'?'selected':''}>🏥 Atestado</option>
+          <option value="Afastado INSS" ${m.status==='Afastado INSS'?'selected':''}>📋 INSS</option>
+          <option value="Licença Maternidade" ${m.status==='Licença Maternidade'?'selected':''}>👶 Lic. Matern.</option>
+          <option value="Licença Paternidade" ${m.status==='Licença Paternidade'?'selected':''}>👶 Lic. Patern.</option>
+          <option value="Suspensão Disciplinar" ${m.status==='Suspensão Disciplinar'?'selected':''}>⚠️ Suspensão</option>
+          <option value="Inativo" ${m.status==='Inativo'?'selected':''}>🚫 Inativo</option>
+        </select></td>
+        <td style="font-size:11px">${m.telefone||'—'} ${whatsLink?`<a href="${whatsLink}" target="_blank" style="text-decoration:none" title="Abrir WhatsApp"><svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg></a>`:''}</td>
+        <td><button class="btn sm" onclick="editarMotoristaForm('${m.token}')">✏️</button> <button class="btn sm" style="border-color:var(--red);color:var(--red)" onclick="desativarMotorista('${m.token}','${m.nome}','${m.status}')">${m.status==='Ativo'?'🚫':'✅'}</button> ${m.pastaDrive?`<a href="${m.pastaDrive}" target="_blank" class="btn sm" style="text-decoration:none" title="Pasta no Drive">📁</a>`:''}</td>
+      </tr>`;
+    }).join('');
+    aplicarRecolhimento('tabela-cadastro',15);
+  }catch(e){tbody.innerHTML=`<tr><td colspan="9" style="color:var(--red)">${e.message}</td></tr>`}
+
+  // Empresas
+  const tbEmp=document.getElementById('tabela-empresas');
+  try{
+    const r2=await fetch(`${URL_SCRIPT}?action=listar_empresas`);
+    const d2=await r2.json();
+    if(d2.status==='ok'){
+      tbEmp.innerHTML=d2.empresas.map(e=>`<tr><td><strong>${e.codigo}</strong></td><td>${e.razaoSocial}</td><td>${e.cnpj}</td><td>${e.cidadeUF||'—'}</td><td>${e.telefone||'—'}</td><td><span class="badge-status badge-green">Ativa</span></td></tr>`).join('');
+      // Popular dropdown empresa no form
+      const sel=document.getElementById('fm-empresa');
+      sel.innerHTML='<option value="">Selecione...</option>';
+      d2.empresas.forEach(e=>{sel.innerHTML+=`<option value="${e.codigo}">${e.razaoSocial}</option>`});
+    }
+  }catch(e){}
+}
+
+function abrirFormMotorista(){
+  document.getElementById('form-motorista').classList.remove('hidden');
+  document.getElementById('form-mot-titulo').textContent='➕ Cadastrar Novo Motorista';
+  document.getElementById('fm-modo').value='novo';
+  document.getElementById('fm-token-edit').value='';
+  // Limpar campos
+  ['fm-nome','fm-cpf','fm-nascimento','fm-endereco','fm-telefone','fm-email','fm-ctps','fm-admissao','fm-cnh','fm-val-cnh','fm-admissional','fm-periodico','fm-toxicologico','fm-placa','fm-token','fm-contato-emerg','fm-tel-emerg'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('fm-funcao').value='Motorista Carreteiro';
+  document.getElementById('fm-sangue').value='';
+  document.getElementById('fm-tipo-veiculo').value='';
+  document.getElementById('fm-cat-cnh').value='';
+  document.getElementById('fm-empresa').value='';
+  document.getElementById('fm-status').textContent='';
+  document.getElementById('form-motorista').scrollIntoView({behavior:'smooth'});
+}
+
+function fecharFormMotorista(){document.getElementById('form-motorista').classList.add('hidden')}
+
+function editarMotoristaForm(token){
+  abrirFormMotorista();
+  document.getElementById('form-mot-titulo').textContent='✏️ Editar Motorista — '+token;
+  document.getElementById('fm-modo').value='editar';
+  document.getElementById('fm-token-edit').value=token;
+  document.getElementById('fm-token').value=token;
+  document.getElementById('fm-token').disabled=true;
+  document.getElementById('fm-cpf').disabled=true;
+  // Buscar dados do motorista para preencher
+  const mot=MOTORISTAS.find(m=>m.token===token)||(document.querySelectorAll('#tabela-cadastro tr'));
+  if(mot){
+    document.getElementById('fm-nome').value=mot.nome||'';
+    document.getElementById('fm-cpf').value=mot.cpf||'';
+    document.getElementById('fm-placa').value=mot.placa||'';
+    document.getElementById('fm-telefone').value=mot.telefone||'';
+    document.getElementById('fm-email').value=mot.email||'';
+    document.getElementById('fm-sangue').value=mot.tipoSanguineo||'';
+    document.getElementById('fm-contato-emerg').value=mot.contatoEmergencia||'';
+    document.getElementById('fm-tel-emerg').value=mot.telEmergencia||'';
+    document.getElementById('fm-empresa').value=mot.codigoEmpresa||'';
+  }
+  document.getElementById('fm-status').textContent='Editando — altere os campos desejados';
+  document.getElementById('fm-status').style.color='var(--accent)';
+}
+
+async function salvarMotorista(){
+  const modo=document.getElementById('fm-modo').value;
+  const btn=document.getElementById('btn-salvar-mot');
+  const st=document.getElementById('fm-status');
+  btn.disabled=true;btn.textContent='⏳ Salvando...';
+
+  const fmtData=(id)=>{const v=document.getElementById(id).value;if(!v)return '';const p=v.split('-');return p[2]+'/'+p[1]+'/'+p[0]};
+
+  try{
+    let params;
+    if(modo==='novo'){
+      params=new URLSearchParams({
+        action:'cadastrar_motorista',
+        nome:encodeURIComponent(document.getElementById('fm-nome').value),
+        cpf:encodeURIComponent(document.getElementById('fm-cpf').value),
+        nascimento:fmtData('fm-nascimento'),
+        endereco:encodeURIComponent(document.getElementById('fm-endereco').value),
+        telefone:encodeURIComponent(document.getElementById('fm-telefone').value),
+        email:encodeURIComponent(document.getElementById('fm-email').value),
+        tipo_sanguineo:encodeURIComponent(document.getElementById('fm-sangue').value),
+        contato_emergencia:encodeURIComponent(document.getElementById('fm-contato-emerg').value),
+        tel_emergencia:encodeURIComponent(document.getElementById('fm-tel-emerg').value),
+        ctps:encodeURIComponent(document.getElementById('fm-ctps').value),
+        admissao:fmtData('fm-admissao'),
+        funcao:encodeURIComponent(document.getElementById('fm-funcao').value),
+        cnh:encodeURIComponent(document.getElementById('fm-cnh').value),
+        categoria_cnh:encodeURIComponent(document.getElementById('fm-cat-cnh').value),
+        validade_cnh:fmtData('fm-val-cnh'),
+        admissional:fmtData('fm-admissional'),
+        periodico:fmtData('fm-periodico'),
+        toxicologico:fmtData('fm-toxicologico'),
+        placa:encodeURIComponent(document.getElementById('fm-placa').value),
+        tipo_veiculo:encodeURIComponent(document.getElementById('fm-tipo-veiculo').value),
+        empresa:encodeURIComponent(document.getElementById('fm-empresa').value),
+        token:encodeURIComponent(document.getElementById('fm-token').value),
+      });
+    }else{
+      params=new URLSearchParams({
+        action:'editar_motorista',
+        token_edit:document.getElementById('fm-token-edit').value,
+        nome:encodeURIComponent(document.getElementById('fm-nome').value),
+        endereco:encodeURIComponent(document.getElementById('fm-endereco').value),
+        telefone:encodeURIComponent(document.getElementById('fm-telefone').value),
+        email:encodeURIComponent(document.getElementById('fm-email').value),
+        tipo_sanguineo:encodeURIComponent(document.getElementById('fm-sangue').value),
+        contato_emergencia:encodeURIComponent(document.getElementById('fm-contato-emerg').value),
+        tel_emergencia:encodeURIComponent(document.getElementById('fm-tel-emerg').value),
+        placa:encodeURIComponent(document.getElementById('fm-placa').value),
+        tipo_veiculo:encodeURIComponent(document.getElementById('fm-tipo-veiculo').value),
+        empresa:encodeURIComponent(document.getElementById('fm-empresa').value),
+      });
+    }
+    const r=await fetch(`${URL_SCRIPT}?${params}`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    st.innerHTML=modo==='novo'?`✅ Cadastrado! Token: <strong style="color:var(--accent);font-size:16px">${d.motorista.token}</strong> — Anote e entregue ao motorista`:`✅ ${d.message}`;
+    st.style.color='var(--green)';
+    carregarCadastros();
+    carregarMotoristas();
+    if(modo==='novo'){document.getElementById('fm-token').value=d.motorista.token}
+  }catch(e){st.textContent='❌ '+e.message;st.style.color='var(--red)'}
+  btn.disabled=false;btn.textContent='💾 Salvar Motorista';
+}
+
+async function salvarEmpresa(){
+  const st=document.getElementById('fe-status');
+  try{
+    const params=new URLSearchParams({
+      action:'cadastrar_empresa',
+      razao:encodeURIComponent(document.getElementById('fe-razao').value),
+      cnpj:encodeURIComponent(document.getElementById('fe-cnpj').value),
+      endereco:encodeURIComponent(document.getElementById('fe-endereco').value),
+      cidade_uf:encodeURIComponent(document.getElementById('fe-cidade').value),
+      cep:encodeURIComponent(document.getElementById('fe-cep').value),
+      telefone:encodeURIComponent(document.getElementById('fe-telefone').value),
+    });
+    const r=await fetch(`${URL_SCRIPT}?${params}`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    st.innerHTML=`✅ ${d.empresa.codigo} — ${d.empresa.razaoSocial}`;st.style.color='var(--green)';
+    carregarCadastros();
+    ['fe-razao','fe-cnpj','fe-endereco','fe-cidade','fe-cep','fe-telefone'].forEach(id=>document.getElementById(id).value='');
+  }catch(e){st.textContent='❌ '+e.message;st.style.color='var(--red)'}
+}
+
+async function mudarStatus(token,novoStatus){
+  try{
+    const params=new URLSearchParams({action:'editar_motorista',token_edit:token,status:novoStatus});
+    const r=await fetch(`${URL_SCRIPT}?${params}`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    carregarCadastros();carregarMotoristas();
+  }catch(e){alert('Erro: '+e.message)}
+}
+
+async function desativarMotorista(token,nome,statusAtual){
+  const novoStatus=statusAtual==='Ativo'?'Inativo':'Ativo';
+  const acao=novoStatus==='Inativo'?'DESATIVAR':'REATIVAR';
+  if(!confirm(`${acao} o motorista ${nome} (${token})?\n\n${novoStatus==='Inativo'?'O motorista não conseguirá mais acessar o sistema e não aparecerá nos relatórios. O histórico será preservado.':'O motorista voltará a ter acesso ao sistema.'}`))return;
+  try{
+    const params=new URLSearchParams({action:'editar_motorista',token_edit:token,status:novoStatus});
+    const r=await fetch(`${URL_SCRIPT}?${params}`);
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    carregarCadastros();carregarMotoristas();
+  }catch(e){alert('Erro: '+e.message)}
+}
+
+function abrirImportacao(){
+  const card=document.getElementById('card-importacao');
+  card.classList.toggle('hidden');
+  if(!card.classList.contains('hidden')){
+    setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'center'}),100);
+  }
+}
+
+async function processarImportacao(input){
+  const file=input.files[0];
+  if(!file)return;
+  const st=document.getElementById('import-status');
+  const preview=document.getElementById('import-preview');
+  st.textContent='⏳ Lendo arquivo...';st.style.color='var(--accent)';
+
+  const reader=new FileReader();
+  reader.onload=async function(evt){
+    try{
+      let motoristas=[];
+      const text=evt.target.result;
+
+      if(file.name.endsWith('.csv')){
+        const linhas=text.split('\n').filter(l=>l.trim());
+        for(let i=1;i<linhas.length;i++){
+          const cols=linhas[i].split(/[,;]/).map(c=>c.trim().replace(/^"|"$/g,''));
+          if(cols[0])motoristas.push({nome:cols[0],cpf:cols[1]||'',nascimento:cols[2]||'',endereco:cols[3]||'',telefone:cols[4]||'',email:cols[5]||'',ctps:cols[6]||'',admissao:cols[7]||'',cnh:cols[8]||'',categoria_cnh:cols[9]||'',validade_cnh:cols[10]||'',placa:cols[11]||'',tipo_veiculo:cols[12]||'',empresa:cols[13]||'',tipo_sanguineo:cols[14]||'',contato_emergencia:cols[15]||'',tel_emergencia:cols[16]||''});
+        }
+      }else{
+        st.textContent='Para arquivos .xlsx, salve como .csv primeiro (Arquivo > Salvar como > CSV UTF-8)';
+        st.style.color='var(--amber)';return;
+      }
+
+      if(!motoristas.length){st.textContent='Nenhum motorista encontrado no arquivo';st.style.color='var(--red)';return;}
+
+      preview.classList.remove('hidden');
+      preview.innerHTML=`<div style="margin:8px 0;font-weight:600">${motoristas.length} motorista(s) encontrado(s):</div><div class="table-wrap"><table><thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>Placa</th></tr></thead><tbody>${motoristas.map(m=>`<tr><td>${m.nome}</td><td>${m.cpf}</td><td>${m.telefone}</td><td>${m.placa}</td></tr>`).join('')}</tbody></table></div><button class="btn primary" onclick="confirmarImportacao()" style="margin-top:8px">✅ Confirmar Importação de ${motoristas.length} motorista(s)</button>`;
+
+      window._importData=motoristas;
+    }catch(e){st.textContent='❌ Erro: '+e.message;st.style.color='var(--red)'}
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+async function confirmarImportacao(){
+  if(!window._importData)return;
+  const st=document.getElementById('import-status');
+  st.textContent='⏳ Importando... isso pode levar alguns segundos';st.style.color='var(--accent)';
+  try{
+    const r=await fetch(URL_SCRIPT,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({action:'importar_motoristas',motoristas:window._importData})
+    });
+    const d=await r.json();
+    if(d.status!=='ok')throw new Error(d.message);
+    st.innerHTML=`✅ ${d.message}`;st.style.color='var(--green)';
+    carregarCadastros();carregarMotoristas();
+    document.getElementById('import-preview').classList.add('hidden');
+  }catch(e){st.textContent='❌ '+e.message;st.style.color='var(--red)'}
+}
+
+// ================================================================
+// CONTATOS
+// ================================================================
+function getContatos(){try{return JSON.parse(localStorage.getItem('phipilot_contatos')||'[]')}catch(e){return[]}}
+function saveContatos(c){localStorage.setItem('phipilot_contatos',JSON.stringify(c))}
+
+function carregarContatos(){
+  const contatos=getContatos();
+  const tbody=document.getElementById('tabela-contatos');
+  if(!contatos.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-dim)">Nenhum contato cadastrado. Clique em "Novo Contato" para começar.</td></tr>';return}
+  tbody.innerHTML=contatos.map((c,i)=>{
+    const tel=c.telefone||'';
+    const whatsNum=tel.replace(/\D/g,'');
+    const whatsLink=whatsNum?`https://wa.me/55${whatsNum}`:'';
+    const cargoCor=c.cargo==='Jurídico'?'badge-amber':c.cargo==='Contabilidade'?'badge-green':c.cargo==='Gerente'||c.cargo==='Diretor'?'badge-red':'badge-status';
+    return `<tr>
+      <td><strong>${c.nome}</strong></td>
+      <td><span class="badge-status ${cargoCor}">${c.cargo||'—'}</span></td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px">${tel||'—'}</td>
+      <td style="font-size:11px">${c.email||'—'}</td>
+      <td>${whatsLink?`<a href="${whatsLink}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#25D366;color:white;padding:5px 14px;border-radius:20px;text-decoration:none;font-size:12px;font-weight:600"><svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> WhatsApp</a>`:'—'}</td>
+      <td>
+        <button class="btn sm" onclick="editarContato(${i})">✏️</button>
+        <button class="btn sm" style="border-color:var(--red);color:var(--red)" onclick="excluirContato(${i})">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function abrirFormContato(){
+  document.getElementById('form-contato').classList.remove('hidden');
+  document.getElementById('fc-titulo').textContent='➕ Novo Contato';
+  document.getElementById('fc-index').value='-1';
+  ['fc-nome','fc-telefone','fc-email','fc-obs'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fc-cargo').value='';
+  document.getElementById('form-contato').scrollIntoView({behavior:'smooth'});
+}
+
+function editarContato(i){
+  const contatos=getContatos();
+  const c=contatos[i];
+  if(!c)return;
+  document.getElementById('form-contato').classList.remove('hidden');
+  document.getElementById('fc-titulo').textContent='✏️ Editar Contato';
+  document.getElementById('fc-index').value=i;
+  document.getElementById('fc-nome').value=c.nome||'';
+  document.getElementById('fc-cargo').value=c.cargo||'';
+  document.getElementById('fc-telefone').value=c.telefone||'';
+  document.getElementById('fc-email').value=c.email||'';
+  document.getElementById('fc-obs').value=c.obs||'';
+  document.getElementById('form-contato').scrollIntoView({behavior:'smooth'});
+}
+
+function salvarContato(){
+  const nome=document.getElementById('fc-nome').value.trim();
+  const cargo=document.getElementById('fc-cargo').value;
+  const telefone=document.getElementById('fc-telefone').value.trim();
+  const email=document.getElementById('fc-email').value.trim();
+  const obs=document.getElementById('fc-obs').value.trim();
+  const index=parseInt(document.getElementById('fc-index').value);
+
+  if(!nome)return alert('Nome é obrigatório');
+  if(!cargo)return alert('Cargo/Setor é obrigatório');
+
+  const contatos=getContatos();
+  const contato={nome,cargo,telefone,email,obs};
+
+  if(index>=0){contatos[index]=contato}else{contatos.push(contato)}
+  saveContatos(contatos);
+  carregarContatos();
+  document.getElementById('form-contato').classList.add('hidden');
+}
+
+function excluirContato(i){
+  const contatos=getContatos();
+  if(!confirm(`Excluir o contato "${contatos[i].nome}"?`))return;
+  contatos.splice(i,1);
+  saveContatos(contatos);
+  carregarContatos();
+}
 
 // ================================================================
 // DASHBOARD
@@ -809,6 +1401,11 @@ async function carregarConformidade(){
 
     const badge=document.getElementById('badge-conf');
     if(totalProblemas>0){badge.textContent=totalProblemas;badge.classList.remove('hidden')}else{badge.classList.add('hidden')}
+
+    // Auto-expandir monitores com alertas
+    if(m1.total>0){document.getElementById('m1-content').style.display='';document.getElementById('arrow-m1-content').textContent='▼';}
+    if(m2.total>0){document.getElementById('m2-content').style.display='';document.getElementById('arrow-m2-content').textContent='▼';}
+    if(m3.total>0){document.getElementById('m3-content').style.display='';document.getElementById('arrow-m3-content').textContent='▼';}
 
     // M1
     const mc1=document.getElementById('m1-count');
@@ -1127,6 +1724,7 @@ async function carregarBancoHoras(){
         <td><button class="btn sm" onclick="preencherComp('${m.token}','${m.nome}',${m.saldo})">📝 Compensar</button></td>
       </tr>`;
     }).join('');
+    aplicarRecolhimento('tabela-bh',15);
   }catch(e){
     tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;color:var(--red);padding:20px">Erro: ${e.message}</td></tr>`;
   }
@@ -1415,7 +2013,6 @@ async function fazerBackupDiario(){
   const btn=document.getElementById('btn-backup');
 
   if(!data){
-    // Usar ontem como padrão
     const ontem=new Date();ontem.setDate(ontem.getDate()-1);
     document.getElementById('backup-data').value=fdi(ontem);
   }
@@ -1433,6 +2030,8 @@ async function fazerBackupDiario(){
     if(d.status!=='ok')throw new Error(d.message);
     st.innerHTML=`✅ ${d.backup.registros} registros de ${d.backup.motoristas} motorista(s) salvos. <a href="${d.backup.url}" target="_blank" style="color:var(--accent);font-weight:600">Abrir planilha</a> — Pasta: ${d.backup.pasta}`;
     st.style.color='var(--green)';
+    localStorage.setItem('phipilot_ult_backup',new Date().toLocaleString('pt-BR'));
+    atualizarLembretes();
   }catch(e){
     st.textContent='❌ '+e.message;st.style.color='var(--red)';
   }
@@ -1454,6 +2053,8 @@ async function fazerArquivamentoMensal(){
     if(d.status!=='ok')throw new Error(d.message);
     st.innerHTML=`✅ ${d.arquivo.registrosArquivados} registros arquivados. ${d.arquivo.registrosRestantes} restantes na planilha. <a href="${d.arquivo.url}" target="_blank" style="color:var(--accent);font-weight:600">Abrir arquivo</a> — Pasta: ${d.arquivo.pasta}`;
     st.style.color='var(--green)';
+    localStorage.setItem('phipilot_ult_arquiv',new Date().toLocaleString('pt-BR'));
+    atualizarLembretes();
   }catch(e){
     st.textContent='❌ '+e.message;st.style.color='var(--red)';
   }
