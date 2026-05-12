@@ -1047,7 +1047,7 @@ async function carregarCadastros(){
         <td><span style="font-family:'JetBrains Mono',monospace;color:var(--accent);font-weight:700">${m.token}</span></td>
         <td>${m.placa||'—'}</td>
         <td style="font-size:11px">${m.codigoEmpresa||'—'}</td>
-        <td><select onchange="confirmarMudancaStatus('${m.token}','${m.nome}',this)" style="padding:4px 8px;border-radius:8px;border:1px solid var(--border);font-size:11px;font-weight:600;background:${m.status==='Ativo'?'#DCFCE7':m.status==='Inativo'?'#FEE2E2':m.status==='Dispensado'?'#E2E8F0':'#FEF3C7'};cursor:pointer">
+        <td><select onchange="confirmarMudancaStatus('${m.token}','${(m.nome||'').replace(/'/g,"\\'")}',this)" data-prev="${m.status}" style="padding:4px 8px;border-radius:8px;border:1px solid var(--border);font-size:11px;font-weight:600;background:${m.status==='Ativo'?'#DCFCE7':m.status==='Inativo'?'#FEE2E2':m.status==='Dispensado'?'#E2E8F0':'#FEF3C7'};cursor:pointer">
           <option value="Ativo" ${m.status==='Ativo'?'selected':''}>✅ Ativo</option>
           <option value="Férias" ${m.status==='Férias'?'selected':''}>🏖️ Férias</option>
           <option value="Atestado Médico" ${m.status==='Atestado Médico'?'selected':''}>🏥 Atestado</option>
@@ -1210,17 +1210,20 @@ async function salvarEmpresa(){
 
 async function confirmarMudancaStatus(token,nome,selectEl){
   const novoStatus=selectEl.value;
+  const prevStatus=selectEl.dataset.prev||'Ativo';
   
   if(novoStatus==='Dispensado'){
     const conf1=confirm(`⚠️ ATENÇÃO: Você está marcando "${nome}" como DISPENSADO.\n\nIsso vai REMOVER o motorista de todas as listas do sistema.\nO histórico no Drive será preservado.\n\nDeseja continuar?`);
-    if(!conf1){selectEl.value=selectEl.dataset.prev||'Ativo';return;}
+    if(!conf1){selectEl.value=prevStatus;return;}
     
     const conf2=confirm(`⚠️ CONFIRMAÇÃO FINAL\n\nDigitou por engano? Esta ação é definitiva.\n\n"${nome}" (${token}) será DISPENSADO e não aparecerá mais no sistema.\n\nPara reverter, será necessário acessar a planilha diretamente.\n\nCONFIRMA A DISPENSA?`);
-    if(!conf2){selectEl.value=selectEl.dataset.prev||'Ativo';return;}
+    if(!conf2){selectEl.value=prevStatus;return;}
   }
   
   selectEl.dataset.prev=novoStatus;
+  selectEl.disabled=true;
   await mudarStatus(token,novoStatus);
+  selectEl.disabled=false;
 }
 
 async function mudarStatus(token,novoStatus){
