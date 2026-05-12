@@ -129,7 +129,28 @@
 </style>
 </head>
 <body>
-<div class="app">
+
+<!-- TELA DE LOGIN DO CONTROLADOR -->
+<div id="login-painel" style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg)">
+  <div style="width:100%;max-width:380px;padding:20px">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="width:64px;height:64px;background:linear-gradient(135deg,#0F172A,#3B82F6);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:white;font-family:'JetBrains Mono',monospace;margin-bottom:12px">Φ</div>
+      <h1 style="font-size:22px;font-weight:800;margin:0">Painel PhiPilot</h1>
+      <p style="font-size:13px;color:var(--text-dim);margin:4px 0 0">Acesso restrito ao controlador</p>
+    </div>
+    <div class="card" style="padding:24px">
+      <label style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim)">Token de Acesso</label>
+      <input type="text" id="login-user" placeholder="CTRL-001" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;margin-bottom:12px;font-family:'DM Sans',sans-serif;background:var(--surface);text-transform:uppercase">
+      <label style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim)">Senha</label>
+      <input type="password" id="login-pass" placeholder="••••••••" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;margin-bottom:16px;font-family:'DM Sans',sans-serif;background:var(--surface)" onkeyup="if(event.key==='Enter')loginPainel()">
+      <button class="btn primary" onclick="loginPainel()" style="width:100%;padding:12px;font-size:14px">Entrar</button>
+      <p id="login-erro" style="font-size:12px;color:var(--red);text-align:center;margin:8px 0 0"></p>
+    </div>
+    <p style="font-size:11px;color:var(--text-dim);text-align:center;margin-top:16px">PhiPilot — Sistema de Controle de Jornada</p>
+  </div>
+</div>
+
+<div class="app" id="app-principal" style="display:none">
 
   <div class="config-bar" id="config-bar">
     <span>🔗</span>
@@ -146,7 +167,10 @@
       </div>
     </div>
     <div style="display:flex;gap:8px">
-      <button class="btn" onclick="carregarTudo()">🔄 Atualizar</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn" onclick="carregarTudo()">🔄 Atualizar</button>
+        <button class="btn" onclick="logoutPainel()" style="font-size:12px;padding:6px 12px" title="Sair">🔒 Sair</button>
+      </div>
     </div>
   </div>
 
@@ -806,6 +830,102 @@ function fh(decimal){
 let MOTORISTAS = [], AUDITORIA = null, RELATORIO_ATUAL = null;
 let AUDIT_DATE = new Date(); AUDIT_DATE.setDate(AUDIT_DATE.getDate() - 1);
 
+// Login do controlador — token + senha criada pelo operador
+function loginPainel(){
+  const user=document.getElementById('login-user').value.trim().toUpperCase();
+  const pass=document.getElementById('login-pass').value.trim();
+  const erro=document.getElementById('login-erro');
+  
+  if(!user){erro.textContent='Informe seu token de acesso';return;}
+  
+  // Tokens autorizados (adicione quantos quiser)
+  const TOKENS_PAINEL = ['CTRL-001','CTRL-002','CTRL-003','ADM-001'];
+  
+  if(!TOKENS_PAINEL.includes(user)){
+    erro.textContent='Token não autorizado';return;
+  }
+  
+  // Verificar se já tem senha criada
+  const senhaSalva=localStorage.getItem('phipilot_painel_senha_'+user);
+  
+  if(!senhaSalva){
+    // Primeiro acesso — mostrar tela de criação de senha
+    mostrarCriarSenhaPainel(user);
+    return;
+  }
+  
+  // Validar senha
+  if(!pass){erro.textContent='Digite sua senha';return;}
+  if(pass!==senhaSalva){erro.textContent='Senha incorreta';return;}
+  
+  // Login OK
+  localStorage.setItem('phipilot_painel_user',user);
+  localStorage.setItem('phipilot_painel_auth','1');
+  document.getElementById('login-painel').style.display='none';
+  document.getElementById('app-principal').style.display='';
+  erro.textContent='';
+}
+
+function mostrarCriarSenhaPainel(token){
+  const container=document.querySelector('#login-painel .card');
+  container.innerHTML=`
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:28px;margin-bottom:8px">🔐</div>
+      <div style="font-size:15px;font-weight:700">Primeiro acesso — ${token}</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-top:4px">Crie sua senha pessoal</div>
+    </div>
+    <label style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim)">Criar Senha</label>
+    <input type="password" id="criar-pass1" placeholder="Digite sua senha" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;margin-bottom:12px;font-family:'DM Sans',sans-serif;background:var(--surface)">
+    <label style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim)">Confirmar Senha</label>
+    <input type="password" id="criar-pass2" placeholder="Confirme sua senha" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;margin-bottom:16px;font-family:'DM Sans',sans-serif;background:var(--surface)" onkeyup="if(event.key==='Enter')criarSenhaPainel('${token}')">
+    <button class="btn primary" onclick="criarSenhaPainel('${token}')" style="width:100%;padding:12px;font-size:14px">Criar Senha e Entrar</button>
+    <p id="criar-erro" style="font-size:12px;color:var(--red);text-align:center;margin:8px 0 0"></p>
+    <p style="font-size:11px;color:var(--text-dim);text-align:center;margin-top:12px">Somente você saberá esta senha</p>
+  `;
+}
+
+function criarSenhaPainel(token){
+  const pass1=document.getElementById('criar-pass1').value.trim();
+  const pass2=document.getElementById('criar-pass2').value.trim();
+  const erro=document.getElementById('criar-erro');
+  
+  if(!pass1){erro.textContent='Digite uma senha';return;}
+  if(pass1.length<4){erro.textContent='Senha deve ter no mínimo 4 caracteres';return;}
+  if(pass1!==pass2){erro.textContent='As senhas não conferem';return;}
+  
+  localStorage.setItem('phipilot_painel_senha_'+token,pass1);
+  localStorage.setItem('phipilot_painel_user',token);
+  localStorage.setItem('phipilot_painel_auth','1');
+  document.getElementById('login-painel').style.display='none';
+  document.getElementById('app-principal').style.display='';
+}
+
+function verificarLoginPainel(){
+  if(localStorage.getItem('phipilot_painel_auth')==='1'){
+    document.getElementById('login-painel').style.display='none';
+    document.getElementById('app-principal').style.display='';
+    return true;
+  }
+  return false;
+}
+
+function logoutPainel(){
+  localStorage.removeItem('phipilot_painel_auth');
+  localStorage.removeItem('phipilot_painel_user');
+  document.getElementById('app-principal').style.display='none';
+  document.getElementById('login-painel').style.display='flex';
+  // Restaurar formulário de login original
+  const container=document.querySelector('#login-painel .card');
+  container.innerHTML=`
+    <label style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim)">Token de Acesso</label>
+    <input type="text" id="login-user" placeholder="CTRL-001" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;margin-bottom:12px;font-family:'DM Sans',sans-serif;background:var(--surface);text-transform:uppercase">
+    <label style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim)">Senha</label>
+    <input type="password" id="login-pass" placeholder="••••••••" style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;margin-bottom:16px;font-family:'DM Sans',sans-serif;background:var(--surface)" onkeyup="if(event.key==='Enter')loginPainel()">
+    <button class="btn primary" onclick="loginPainel()" style="width:100%;padding:12px;font-size:14px">Entrar</button>
+    <p id="login-erro" style="font-size:12px;color:var(--red);text-align:center;margin:8px 0 0"></p>
+  `;
+}
+
 function toggleMonitor(contentId){
   const el=document.getElementById(contentId);
   const arrow=document.getElementById('arrow-'+contentId);
@@ -862,6 +982,7 @@ function atualizarLembretes(){
   document.getElementById('cfg-url').value = URL_SCRIPT;
   if (URL_SCRIPT) { document.getElementById('config-bar').style.display = 'none'; carregarTudo(); }
   atualizarLembretes();
+  verificarLoginPainel();
   const h = new Date();
   document.getElementById('inp-dt-fim').value = fdi(h);
   document.getElementById('inp-dt-inicio').value = fdi(h);
