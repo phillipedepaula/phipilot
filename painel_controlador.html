@@ -1350,7 +1350,14 @@ function popularDropdownProntuario(){
   const s=document.getElementById('pront-motorista');
   if(s.options.length<=1&&MOTORISTAS.length>0){
     s.innerHTML='<option value="">Selecione...</option>';
-    MOTORISTAS.forEach(m=>{s.innerHTML+=`<option value="${m.token}">${m.nome} — ${m.token}</option>`});
+    // Incluir todos: ativos e afastados
+    const todos=[...MOTORISTAS];
+    // Buscar afastados do último carregamento
+    if(window._afastados)window._afastados.forEach(a=>todos.push(a));
+    todos.forEach(m=>{
+      const tag=m.status&&m.status!=='Ativo'?' ('+m.status+')':'';
+      s.innerHTML+=`<option value="${m.token}">${m.nome} — ${m.token}${tag}</option>`;
+    });
   }
 }
 
@@ -1885,6 +1892,7 @@ async function carregarMotoristas(){
     const d=await r.json();
     if(d.status!=='ok')throw new Error(d.message);
     MOTORISTAS=d.motoristas||[];
+    window._afastados=d.afastados||[];
     const s=document.getElementById('sel-motorista');
     s.innerHTML='<option value="">Selecione...</option>';
     MOTORISTAS.forEach(m=>{s.innerHTML+=`<option value="${m.token}">${m.nome} — ${m.placa||'Sem placa'}</option>`});
